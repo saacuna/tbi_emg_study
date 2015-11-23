@@ -36,6 +36,7 @@ elseif (narg==2);
         infile = [infile(1:length(infile)) '.txt'];
     end
 end
+
 fid = fopen([inpath infile],'r');
 if (fid==-1);
     disp('File not found');

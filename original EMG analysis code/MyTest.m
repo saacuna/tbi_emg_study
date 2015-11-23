@@ -240,7 +240,7 @@ for j=1:6
     subplot(6,1,j);
     hold on
     rightleg1=shadedErrorBar([0:100]',normemg(:,j),normemgstd(:,j),'b',1);
-    %rightleg2=shadedErrorBar([0:100]',normemg2(:,j),normemgstd2(:,j),'r',1);
+    rightleg2=shadedErrorBar([0:100]',normemg2(:,j),normemgstd2(:,j),'r',1);
     %rightleg6=shadedErrorBar([0:100]',normemg6(:,j),normemgstd6(:,j),'g',1);
     %rightleg10=shadedErrorBar([0:100]',normemg10(:,j),normemgstd10(:,j),'k',1);
     plot([0:100]',normemg(:,j),'b');
@@ -266,7 +266,7 @@ for j=1:6
     subplot(6,1,j);
     hold on
     leftleg1=shadedErrorBar([0:100]',normemg(:,6+j),normemgstd(:,6+j),'b',1);
-    %leftleg2=shadedErrorBar([0:100]',normemg2(:,6+j),normemgstd2(:,6+j),'r',1);
+    leftleg2=shadedErrorBar([0:100]',normemg2(:,6+j),normemgstd2(:,6+j),'r',1);
     %leftleg6=shadedErrorBar([0:100]',normemg6(:,6+j),normemgstd6(:,6+j),'g',1);
     %leftleg10=shadedErrorBar([0:100]',normemg10(:,6+j),normemgstd10(:,6+j),'k',1);
     plot([0:100]',normemg(:,6+j),'b');
