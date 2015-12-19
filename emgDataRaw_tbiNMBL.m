@@ -14,6 +14,9 @@ classdef emgDataRaw_tbiNMBL < handle
     properties (GetAccess = 'public', SetAccess = 'private')
         % public read access, but private write access.
         
+        infile; % name of original emg txt data file
+        inpath; % name of directory of original emg txt data file
+        
         subjectID; % e.g. TBI-06
         subjectInitials; % e.g. SA
         dateCollected; % e.g. 'nov 23, 2015'
@@ -55,38 +58,62 @@ classdef emgDataRaw_tbiNMBL < handle
         % constructor function
         function obj = emgDataRaw_tbiNMBL(infile,inpath)
             %   Inputs (optional)
-            %       infile - file to be loaded
+            %       infile - file to be loaded,
+            %                e.g. 'test.txt'
             %                If infile is unspecified, the user is prompted to select the input file
             %       inpath - directory of location where data file is located
+            %               e.g. '/Users/user1/Documents/emg_directory/'
             %               when no path is specified, it defaults to current directory
             
-            if nargin>=0
-                infile = []; inpath = [];
+            narg = nargin;
+            if (narg==0); % choose emg txt file
+                [infile, inpath]=uigetfile('*.txt','Select input file');
+                if infile == 0
+                    error('Canceled. No file selected');
+                end    
+            else % check filename and pathname are valid
+                
+                % append .txt if not included on infile name
+                if ~strcmpi('txt',infile(end-2:end))
+                    infile = [infile(1:length(infile)) '.txt'];
+                end
+                if (narg == 1) % if inpath not specified
+                    inpath=[pwd '/']; % sets the current working directory
+                else
+                    if ~strcmpi(inpath(end),'/') % makes sure slash is at end of path
+                        inpath = [inpath '/'];
+                    end
+                end
+                
+                % check file is in directory
+                original_directory = pwd;
+                try
+                    cd(inpath);
+                catch
+                    error('inpath : directory name not valid. Fix this');
+                end
+                fileFound = false;
+                D = dir('*.txt');
+                for i = 1:length(D)
+                    if strcmpi(infile,D(i).name)
+                        fileFound = true;
+                        break;
+                    end
+                end
+                cd(original_directory);
+                if fileFound
+                    disp('file found.');
+                else
+                    error('infile : specified filename not found in this directory.');
+                end
             end
             
-%             
-%             narg = nargin;
-%             if (narg==0);
-%                 [infile, inpath]=uigetfile('*.txt','Select input file')
-%                 if isempty(infile)
-%                     disp('No file selected');
-%                     emg=[]; acc=[]; ax=[];  ay=[];  az=[];
-%                     return;
-%                 end
-%             elseif (narg==1);
-%                 if ~strmatch('txt',infile(end-2:end))
-%                     infile = [infile(1:length(infile)) '.txt'];
-%                 end
-%                 inpath=[];
-%             elseif (narg==2);
-%                 if strmatch(infile(end-2:end)~='txt')
-%                     infile = [infile(1:length(infile)) '.txt'];
-%                 end
-%             end
-%             
-%             
-%             % generate emg, accX, accY, accZ data
-%             load_emgworks(obj,infile,inpath)
+            % record emg file location
+            obj.infile = infile;
+            obj.inpath = inpath;
+            
+            % generate emg, accX, accY, accZ data
+            load_emgworks(obj,infile,inpath)
             
             % record subject / trial info
             obj.subjectID = '';
@@ -101,7 +128,7 @@ classdef emgDataRaw_tbiNMBL < handle
             
             updateSubjectTrialInfo(obj);
             
-                
+            
         end
         
         function updateSubjectTrialInfo(obj)
@@ -119,7 +146,7 @@ classdef emgDataRaw_tbiNMBL < handle
             prompt1_defaultAnswer = {obj.subjectID,obj.subjectInitials,obj.dateCollected,obj.dataCollectedBy,obj.walkingSpeed_preferred,obj.walkingSpeed_baseline};
             prompt1_title = 'Collection Information';
             prompt1_answer = inputdlg(prompt1,prompt1_title,[1 60],prompt1_defaultAnswer);
-            if isempty(prompt1_answer); return; end; % user canceled. bail out.    
+            if isempty(prompt1_answer); return; end; % user canceled. bail out.
             % update collection info
             obj.subjectID = prompt1_answer{1};
             obj.subjectInitials = prompt1_answer{2};
@@ -128,14 +155,14 @@ classdef emgDataRaw_tbiNMBL < handle
             obj.walkingSpeed_preferred = prompt1_answer{5};
             obj.walkingSpeed_baseline = prompt1_answer{6};
             
-            % second, update the test point for which the trial was collected. 
+            % second, update the test point for which the trial was collected.
             testPoints = {'01','02','06','10'};
             prompt2_defaultAnswer = find(strcmp(obj.testPoint,testPoints)==1); % find default answer
             if isempty(prompt2_defaultAnswer); prompt2_defaultAnswer = 1; end; % if setting for first time
             prompt2_title = 'Select Test Point:';
             prompt2_title2 = 'Test Point';
             prompt2_answer = listdlg('PromptString',prompt2_title,'SelectionMode','single','Name',prompt2_title2,'ListString',testPoints,'InitialValue',prompt2_defaultAnswer,'ListSize',[150 75]);
-            if isempty(prompt2_answer); return; end; % user canceled. bail out.    
+            if isempty(prompt2_answer); return; end; % user canceled. bail out.
             % update test point
             obj.testPoint = testPoints{prompt2_answer};
             
@@ -146,13 +173,13 @@ classdef emgDataRaw_tbiNMBL < handle
             prompt3_title = 'Select Trial Type:';
             prompt3_title2 = 'Trial Type';
             prompt3_answer = listdlg('PromptString',prompt3_title,'SelectionMode','single','Name',prompt3_title2,'ListString',trials,'InitialValue',prompt3_defaultAnswer,'ListSize',[150 75]);
-            if isempty(prompt3_answer); return; end; % user canceled. bail out.    
+            if isempty(prompt3_answer); return; end; % user canceled. bail out.
             % update trial type
             obj.trialType = trials{prompt3_answer};
             
             % fourth, update any additional notes for each trial
             prompt4 = {'Trial Notes:   (ex: "hands on treadmill")'};
-            prompt4_defaultAnswer = {obj.notes}; 
+            prompt4_defaultAnswer = {obj.notes};
             prompt4_title = 'Additional trial notes';
             prompt4_answer = inputdlg(prompt4,prompt4_title,[5 50],prompt4_defaultAnswer);
             if isempty(prompt4_answer); return; end; % user canceled. bail out.
@@ -167,7 +194,7 @@ classdef emgDataRaw_tbiNMBL < handle
             %   LOAD_EMGWORKS is used to open a csv formateed data file generated by the emgworks
             %   software
             %
-            %   Inputs 
+            %   Inputs
             %       infile - file to be loaded
             %       inpath - directory of location where data file is located
             %
@@ -230,7 +257,7 @@ classdef emgDataRaw_tbiNMBL < handle
                 kp=(units=='p');  data(k,kp)=data(k,kp)*.000000000001;
                 kf=(units=='f');  data(k,kf)=data(k,kf)*.000000000000001;
                 %    disp(data(k,:));
-                disp(['line ',num2str(k),' time ',num2str(data(k,1))]);
+                % disp(['line ',num2str(k),' time ',num2str(data(k,1))]);
                 k=k+1;
             end
             
