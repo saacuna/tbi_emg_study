@@ -92,7 +92,7 @@ classdef emgDataRaw_tbiNMBL < handle
             obj.subjectID = '';
             obj.subjectInitials = '';
             obj.dateCollected = '';
-            obj.testPoint = '01';
+            obj.testPoint = '';
             obj.dataCollectedBy = '';
             obj.walkingSpeed_preferred = '';
             obj.walkingSpeed_baseline = '';
@@ -105,39 +105,59 @@ classdef emgDataRaw_tbiNMBL < handle
         end
         
         function updateSubjectTrialInfo(obj)
+            % this function asks for the subject and trial info, to store
+            % along with the EMG data. If the subject and trial info has
+            % already been inputted, it will update the information.
+            
+            % first update the general collection information
             prompt1 = {'Subject ID:   (ex: "TBI-06")',...
                 'Subject Initials:   (ex: "SA")',...
                 'Date Collected:   (yyyy-MM-dd)',...
-                'Data Collected by:   (ex: "SA")'};
-            prompt1_defaultAnswer = {obj.subjectID,obj.subjectInitials,obj.dateCollected,obj.dataCollectedBy};
-            prompt1_title = 'Trial Information';
-            answer1 = inputdlg(prompt1,prompt1_title,[1 40],prompt1_defaultAnswer);
+                'Data Collected by:   (ex: "SA")',...
+                'Preferred walking speed:   (ex: "2.1 mph")',...
+                'Baseline walking speed:   (ex: "2.0 mph")'};
+            prompt1_defaultAnswer = {obj.subjectID,obj.subjectInitials,obj.dateCollected,obj.dataCollectedBy,obj.walkingSpeed_preferred,obj.walkingSpeed_baseline};
+            prompt1_title = 'Collection Information';
+            prompt1_answer = inputdlg(prompt1,prompt1_title,[1 60],prompt1_defaultAnswer);
+            if isempty(prompt1_answer); return; end; % user canceled. bail out.    
+            % update collection info
+            obj.subjectID = prompt1_answer{1};
+            obj.subjectInitials = prompt1_answer{2};
+            obj.dateCollected = prompt1_answer{3};
+            obj.dataCollectedBy = prompt1_answer{4};
+            obj.walkingSpeed_preferred = prompt1_answer{5};
+            obj.walkingSpeed_baseline = prompt1_answer{6};
             
-            obj.subjectID = answer1(1);
-            obj.subjectInitials = answer1(2);
-            obj.dateCollected = answer1(3);
-            obj.dataCollectedBy = answer1(4);
+            % second, update the test point for which the trial was collected. 
+            testPoints = {'01','02','06','10'};
+            prompt2_defaultAnswer = find(strcmp(obj.testPoint,testPoints)==1); % find default answer
+            if isempty(prompt2_defaultAnswer); prompt2_defaultAnswer = 1; end; % if setting for first time
+            prompt2_title = 'Select Test Point:';
+            prompt2_title2 = 'Test Point';
+            prompt2_answer = listdlg('PromptString',prompt2_title,'SelectionMode','single','Name',prompt2_title2,'ListString',testPoints,'InitialValue',prompt2_defaultAnswer,'ListSize',[150 75]);
+            if isempty(prompt2_answer); return; end; % user canceled. bail out.    
+            % update test point
+            obj.testPoint = testPoints{prompt2_answer};
             
-            prompt2 = {'01','02','06','10'};
-            if obj.testPoint == '01'
-                default2 = 1;
-            elseif obj.testPoint == '02'
-                default2 = 2;
-            elseif obj.testPoint == '06'
-                default2 = 3;
-            elseif obj.testPoint == '10'
-                default2 = 4;
-            end
-            answer2 = listdlg('PromptString','Select Test Point:','SelectionMode','single','Name','Test Point','ListString',prompt2,'InitialValue',default2,'ListSize',[100 50]);
-            obj.testPoint = prompt2(answer2);
+            % third, update specific trial info
+            trials = {'check muscles', 'relaxed standing', 'relaxed laying down', 'treadmill, preferred speed', 'treadmill, baseline speed', 'overground'};
+            prompt3_defaultAnswer= find(strcmp(obj.trialType,trials)==1);
+            if isempty(prompt3_defaultAnswer); prompt3_defaultAnswer = 1; end; % if setting for first time
+            prompt3_title = 'Select Trial Type:';
+            prompt3_title2 = 'Trial Type';
+            prompt3_answer = listdlg('PromptString',prompt3_title,'SelectionMode','single','Name',prompt3_title2,'ListString',trials,'InitialValue',prompt3_defaultAnswer,'ListSize',[150 75]);
+            if isempty(prompt3_answer); return; end; % user canceled. bail out.    
+            % update trial type
+            obj.trialType = trials{prompt3_answer};
             
-            prompt3 = {'Preferred walking speed:   (ex: "2.1 mph")',...
-                'Baseline walking speed:   (ex: "2.0 mph")',...
-                'Trial Type:   (ex: "Relaxed Standing")',...
-                'Notes:   (ex: "hands on treadmill")'};
-%             prompt3_defaultAnswer
-            prompt3_title = 'Trial Information';
-            
+            % fourth, update any additional notes for each trial
+            prompt4 = {'Trial Notes:   (ex: "hands on treadmill")'};
+            prompt4_defaultAnswer = {obj.notes}; 
+            prompt4_title = 'Additional trial notes';
+            prompt4_answer = inputdlg(prompt4,prompt4_title,[5 50],prompt4_defaultAnswer);
+            if isempty(prompt4_answer); return; end; % user canceled. bail out.
+            % update additional notes
+            obj.notes = prompt4_answer{1};
         end
     end
     

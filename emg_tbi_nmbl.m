@@ -3,12 +3,13 @@ classdef emg_tbi_nmbl < handle
     % Author:   Samuel Acuna
     % Date:     20 Nov 2015
     % Description:
-    % This class file is used to proces collected EMG data from the TCNL
+    % This class file is used to process collected EMG data from the TCNL
     % lab for their TBI study.
     %
     % Example usage:
     %
     % note: protocol should be scripted like this in a driver file. 
+    
     properties(GetAccess = 'public', SetAccess = 'private')
            % public read access, but private write access.
         
