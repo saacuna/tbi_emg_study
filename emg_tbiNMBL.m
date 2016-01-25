@@ -1,4 +1,4 @@
-classdef emg_tbi_nmbl < handle
+classdef emg_tbiNMBL < handle
     % Filename: emg_tbi_nmbl.m
     % Author:   Samuel Acuna
     % Date:     20 Nov 2015
