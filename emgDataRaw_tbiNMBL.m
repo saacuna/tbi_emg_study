@@ -11,6 +11,7 @@ classdef emgDataRaw_tbiNMBL < handle
     %
     % Example usage:
     %       emg1 = emgDataRaw_tbiNMBL() %load emg data and calculate average emg cycle data
+    %       emg1.plotGaitCycle() % plots average emg cycle data for all muscles recorded
     %       emg1.updateSubjectTrialInfo() % update any subject and trial info for file 
     %       emg1.saveEmgData() % save raw and calculated data, so dont have to calculate again
     %       emg1.exportEmgData() % save just avg emg cycle data, small file size, for further processing
@@ -258,7 +259,38 @@ classdef emgDataRaw_tbiNMBL < handle
                 
                 save(filename,'emgcyc') % save file
                 disp(['Data saved as ' filename]);
-            end   
+            end    
+        end
+        
+        function plotGaitCycle(obj)
+            % this function plots the emg gait cycle data for the
+            % calculated trial. cool, eh?
+            %Plots 2 figures, each with 6 muscles (mean +/- std)
+
+            % RIGHT LEG
+            figure()
+            for j=1:6
+                subplot(6,1,j);
+                hold on
+                rightleg=shadedErrorBar([0:100]',obj.emgcyc(:,j),obj.emgcycstd(:,j),'b',1);
+                plot([0:100]',obj.emgcyc(:,j),'b');
+                hold off
+                title(obj.emgcyclabel(j));
+                ylim([0,3]);
+                %axis([0,100,0,inf]);
+            end
+            % LEFT LEG
+            figure()
+            for j=1:6
+                subplot(6,1,j);
+                hold on
+                leftleg=shadedErrorBar([0:100]',obj.emgcyc(:,6+j),obj.emgcycstd(:,6+j),'b',1);
+                plot([0:100]',obj.emgcyc(:,6+j),'b');
+                hold off
+                title(obj.emgcyclabel(6+j));
+                ylim([0,3]);
+                %axis([0,100,0,inf]);
+            end
             
         end
     end
