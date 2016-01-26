@@ -150,7 +150,7 @@ classdef emgDataRaw_tbiNMBL < handle
             % already been inputted, it will update the information.
             
             % first update the general collection information
-            prompt1 = {'Subject ID:   (ex: "TBI_06")',...
+            prompt1 = {'Subject ID:   (ex: "TBI-06")',...
                 'Subject Initials:   (ex: "SA")',...
                 'Date Collected:   (yyyy-MM-dd)',...
                 'Data Collected by:   (ex: "SA")',...
@@ -204,12 +204,13 @@ classdef emgDataRaw_tbiNMBL < handle
             % class, for easier access
             
             % create save file name
-            defaultFilename = ['emg_' obj.subjectID '_tp' obj.testPoint '_' obj.trialType '.mat'];
+            tbiNum_index = regexp(obj.subjectID, ['\d']);
+            defaultFilename = ['emg_tbi' obj.subjectID(tbiNum_index) '_tp' obj.testPoint '_' obj.trialType '.mat'];
       
             % dialog box for saving file
             [filename, ~, FilterIndex] = uiputfile('*.mat','Save processed emg data as...',defaultFilename);
             
-            if FilterIndex ~= 0 % user did not cancel saving
+            if FilterIndex ~= 0 % if user did not cancel saving
                 save(filename,'obj') % save file
             end
             
