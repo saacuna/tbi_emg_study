@@ -144,6 +144,7 @@ classdef emgDataRaw_tbiNMBL < handle
             
         end
         
+        
         function updateSubjectTrialInfo(obj)
             % this function asks for the subject and trial info, to store
             % along with the EMG data. If the subject and trial info has
@@ -199,12 +200,13 @@ classdef emgDataRaw_tbiNMBL < handle
             % update additional notes
             obj.notes = prompt4_answer{1};
         end
+        
         function saveEmgData(obj)
             % this function saves the emg data as a .mat file of this
             % class, for easier access
             
             % create save file name
-            tbiNum_index = regexp(obj.subjectID, ['\d']);
+            tbiNum_index = regexp(obj.subjectID, '\d');
             defaultFilename = ['emg_tbi' obj.subjectID(tbiNum_index) '_tp' obj.testPoint '_' obj.trialType '.mat'];
       
             % dialog box for saving file
@@ -313,6 +315,107 @@ classdef emgDataRaw_tbiNMBL < handle
             
         end
         
+        function calcEmgCycle(obj, plots)
+            % this function takes the loaded raw emg data, and calculates
+            % the data for the average emg for the gait cycle. this is a much smaller
+            % amount of data to keep in memory
+            
+            % plots = 0 or 1, depending if you want plots accompanying the
+            % calculation
+            
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % Finds the peaks of the filtered acc data
+            
+            [bfa,afa]=butter(3,25/(obj.accX(1).freq/2));
+            
+            
+            for i=1:3
+                axf=filtfilt(bfa,afa,obj.accX(i).data);
+                ayf=filtfilt(bfa,afa,obj.accY(i).data);
+                azf=filtfilt(bfa,afa,obj.accZ(i).data);
+                amag(:,i)=(obj.accX(i).data.^2+obj.accY(i).data.^2+obj.accZ(i).data.^2).^0.5;
+                amagf(:,i)=(axf.^2+ayf.^2+azf.^2).^0.5;
+            end
+            
+            if plots
+                figure()
+                for i = 1:3
+                    subplot(4,1,i);
+                    %Plots the raw acc data of x,y,z for each ankle and lumbar
+                    plot(obj.accX(1).time,[obj.accX(i).data obj.accY(i).data obj.accZ(i).data]);
+                    hold on;
+                    %Plots the filtered acc data of x,y,z for each ankle and lumbar
+                    %overlayed as dashes
+                    plot(obj.accX(1).time,[axf ayf azf],'--');
+                    hold off
+                    title(obj.accX(i).label);
+                    legend('accX_raw', 'accY_raw', 'accz_raw','accX_filt','accY_filt','accZ_filt');
+                end
+                
+            end
+            
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % Uses the magnitudes from filtered acc data and finds the peaks
+            
+            [hsr, hsrp]=findpeaks(amagf(:,1),'MinPeakHeight',2.,'MinPeakDistance',100);
+            [hsl, hslp]=findpeaks(amagf(:,2),'MinPeakHeight',2.,'MinPeakDistance',100);
+            
+            if plots
+                % Plots the peaks as x's and o's
+                subplot(4,1,4);
+                plot(obj.accX(1).time,amagf,'-');
+                hold on;
+                plot(obj.accX(1).time(hsrp),hsr, 'o');
+                plot(obj.accX(1).time(hslp),hsl,'x');
+                hold off;
+                legend('R Ankle', 'L Ankle', 'Lumbar')
+                title('Peaks of Acceleration Magnitudes, filtered')
+            end
+            
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % Filter the EMG data
+            % Use 3 filters to remove non-EMG frequency range noise, drift, and
+            % then get nice activation envelopes - numbers are set for 2000 Hz
+            % collection
+            [b,a]=butter(4,0.35,'low'); %Used to remove high-frequency noise above 350Hz
+            [bb,aa]=butter(4,0.001,'high'); %Used to remove low-frequency drift below 1Hz
+            [bbb,aaa]=butter(4,0.01,'low'); %Used to filter to 10Hz to get envelope
+            for ii=1:12
+                emgdatar(:,ii)=obj.emg(ii).data; %Raw emg data - Here just pulling the matrix of data out of the structure I loaded
+                
+            end
+            EMfr=filtfilt(bb,aa,emgdatar); %Zero-shift filter removing drift first
+            EMGr=filtfilt(b,a,EMfr); %Zero-shift filter removing high frequency noise
+            EMGabs=abs(EMGr); %Rectify data
+            emgdata=filtfilt(bbb,aaa,EMGabs); %Filter to envelopes of activation
+
+            if plots % plots the filtered emg data
+                figure()
+                for i = 1:12
+                    subplot(12,1,i);
+                    plot(obj.emg(1).time,emgdata(:,i));
+                    title(obj.emg(i).label);
+                end
+            end
+            
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %Computes the average emg cycle
+            emgtime=obj.emg(1).time;
+            for j=1:6
+                emgc(j)=avgcycle(emgtime,emgdata(:,j),obj.accX(1).time(hsrp),10,50);
+                emgc(6+j)=avgcycle(emgtime,emgdata(:,6+j),obj.accX(2).time(hslp),10,50);
+            end
+            
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %Normalize the EMG data
+            for j=1:12
+                emgrms(j)=rms(emgdata(:,j));
+                
+                normemg(:,j)=(emgc(j).avg)./(emgrms(j));
+                normemgstd(:,j)=(emgc(j).sd)./(emgrms(j));
+            end
+
+        end
     end
 end
 
@@ -343,4 +446,65 @@ line=fgetl(fid);    jcolon=find(line==':');	hdr.bias=sscanf(line(jcolon+1:end),'
 line=fgetl(fid);    jcolon=find(line==':');	hdr.hpcutoff=sscanf(line(jcolon+1:end),'%f');
 line=fgetl(fid);    jcolon=find(line==':');	hdr.lpcutoff=sscanf(line(jcolon+1:end),'%f');
 fseek(fid,position,'bof');
+end
+
+function xc=avgcycle(time,x,tc,hcf,lcf)
+% xc=avgcycle(x,tc,hcf,lcf)
+npts=101;
+% if (length(hcf)>0)
+%     [bhf,ahf]=butter(3,hcf/(x.freq/2),'high');
+%     xf=filtfilt(bhf,ahf,x.data);
+% else
+%     xf=x.data;
+% end
+% if (length(lcf)>0)
+%     [blf,alf]=butter(3,lcf/(x.freq/2));
+%     xf=filtfilt(blf,alf,abs(xf));
+% end
+xf=x;
+xc.cycles=zeros(npts,size(tc,1));
+for j=1:length(tc)-1
+    j1=find(time>tc(j));  j1=j1(1);
+    j2=find(time>tc(j+1));  j2=j2(1);
+    xc.cycles(:,j)=normcycle(xf(j1:j2),npts);
+    xc.period(j)=time(j2)-time(j1);
+end
+xc.avg=mean(xc.cycles')';
+xc.sd=std(xc.cycles')';
+% xc.label=x.label;
+end
+
+function yf = normcycle(y,n,x)
+% yf = normcycle(y,n,x)
+% Convert a signal y to n even-spaced data points over a cycle
+% Often used for presentation of gait data, default for n is 101 points
+% can specify an indpendent variable x (optional)
+if ~exist('n','var')
+    n=101;
+end
+[nr,nc]=size(y);
+if nc==1 && nr>1
+    ny=1;
+    nx=nr;
+elseif nr==1 && nc>1
+    y=y';
+    ny=1;
+    nx=nc;
+elseif nr>1 && nc>1
+    ny=nc;
+    nx=nr;
+else
+    disp('normcycle does not work on a scalar value');
+    yf=[];
+    return
+end
+if ~exist('x','var')
+    x=[0:(nx-1)]/(nx-1);
+else
+    nx=length(x);
+    x=(x-x(1))/(x(end)-x(1));
+end
+kk=[0:(n-1)]/(n-1);
+yf=interp1(x,y,kk,'*pchip');
+
 end
