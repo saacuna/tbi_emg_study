@@ -70,7 +70,7 @@ classdef emgDataRaw_tbiNMBL < handle
                 [infile, inpath]=uigetfile('*.txt','Select input file');
                 if infile == 0
                     error('Canceled. No file selected');
-                end    
+                end
             else % check filename and pathname are valid
                 
                 % append .txt if not included on infile name
@@ -113,7 +113,13 @@ classdef emgDataRaw_tbiNMBL < handle
             obj.inpath = inpath;
             
             % generate emg, accX, accY, accZ data
-            load_emgworks(obj,infile,inpath)
+            disp('loading and converting raw emg data in matlab friendly format. This might take a while...')
+            try
+                load_emgworks(obj,infile,inpath)
+            catch
+                error('could not load emgworks file. Something went wrong in the load_emgworks function.');
+            end
+            disp('conversion completed. now add trial data.')
             
             % record subject / trial info
             obj.subjectID = '';
@@ -127,7 +133,7 @@ classdef emgDataRaw_tbiNMBL < handle
             obj.notes = '';
             
             updateSubjectTrialInfo(obj);
-            
+            disp('Trial successfully loaded into memory.')
             
         end
         
