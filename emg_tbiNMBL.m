@@ -232,6 +232,8 @@ classdef emg_tbiNMBL < handle
                 suptitle(suptitle_name);
             end
         end
+%         function 
+%         end
     end
     methods ( Access = private )
         function checkConsistentEmgLabels(obj, checkFlags)

@@ -195,7 +195,7 @@ classdef emgDataRaw_tbiNMBL < handle
             obj.testPoint = testPoints{prompt2_answer};
             
             % third, update specific trial info
-            trials = {'check_muscles', 'relaxed_standing', 'relaxed_laying_down', 'treadmill_preferredSpeed', 'treadmill_baselineSpeed', 'overground'};
+            trials = tbiConstants.trialType;
             prompt3_defaultAnswer= find(strcmp(obj.trialType,trials)==1);
             if isempty(prompt3_defaultAnswer); prompt3_defaultAnswer = 1; end; % if setting for first time
             prompt3_title = 'Select Trial Type:';
@@ -227,7 +227,7 @@ classdef emgDataRaw_tbiNMBL < handle
             defaultFilename = ['emg_tbi' obj.subjectID(tbiNum_index) '_tp' obj.testPoint '_' obj.trialType '.mat'];
       
             % dialog box for saving file
-            [filename, ~, FilterIndex] = uiputfile('*.mat','Save emg gait cycle data as...',defaultFilename);
+            [filename, filepath, FilterIndex] = uiputfile('*.mat','Save emg gait cycle data as...',defaultFilename);
             
             if FilterIndex ~= 0 % if user did not cancel saving
                 
@@ -246,8 +246,10 @@ classdef emgDataRaw_tbiNMBL < handle
                     'emgstd', {obj.emgcycstd},...
                     'emglabel', {obj.emgcyclabel},...
                     'emgfreq', {obj.emg.freq});
-                
+                orig_dir = pwd;
+                cd(filepath);
                 save(filename,'emgcyc') % save file
+                cd(orig_dir);
                 disp(['Data saved as ' filename]);
             end    
         end
