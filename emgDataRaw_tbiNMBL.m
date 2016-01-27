@@ -224,7 +224,7 @@ classdef emgDataRaw_tbiNMBL < handle
             
             % create save file name
             tbiNum_index = regexp(obj.subjectID, '\d');
-            defaultFilename = ['emgcyc_tbi' obj.subjectID(tbiNum_index) '_tp' obj.testPoint '_' obj.trialType '.mat'];
+            defaultFilename = ['emg_tbi' obj.subjectID(tbiNum_index) '_tp' obj.testPoint '_' obj.trialType '.mat'];
       
             % dialog box for saving file
             [filename, ~, FilterIndex] = uiputfile('*.mat','Save emg gait cycle data as...',defaultFilename);

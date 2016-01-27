@@ -13,7 +13,8 @@ classdef emg_tbiNMBL < handle
     % Example usage:
     %   subj1 = emg_tbiNMBL()
     %   subj1.loadTestPoint(1)
-    %   subj1.plotGaitCycle(1)
+    %   subj1.loadTestPoint(2)
+    %   subj1.plotGaitCycle()
     %   save('subj1.mat','subj1')
     %
     % note: protocol should be scripted like this in a driver file.
@@ -25,6 +26,7 @@ classdef emg_tbiNMBL < handle
         subjectInitials; % e.g. SA
         subjectStatus; % e.g. completed, withdrawn, current
         subjectPoNS; % PoNS stimulation type. e.g. active, control, unknown (wont know until end of study)
+        tpFlags; % array of which test points (tp01-tp06) have data in them e.g. [0 0 0 0] has no data, [1 0 0 0] has data only in tp01
         tp01; % trial data for test point 1
         tp02; % test point 2
         tp06; % test point 6
@@ -40,8 +42,8 @@ classdef emg_tbiNMBL < handle
             obj.subjectInitials = '';
             obj.subjectStatus = '';
             obj.subjectPoNS = '';
-            updateSubjectGeneralData(obj); %setup general subject information
-            
+            obj.tpFlags = [0 0 0 0]; % no data loaded into test points yet
+            updateSubjectGeneralData(obj); %setup general subject information 
         end
         function updateSubjectGeneralData(obj)
             % update general subject information
@@ -79,7 +81,6 @@ classdef emg_tbiNMBL < handle
             % update trial type
             obj.subjectPoNS = PoNS{prompt3_answer};
         end
-        
         function loadTestPoint(obj,testPoint)
             % loads collection data into either tp01,tp02,tp06,tp10
             
@@ -117,76 +118,181 @@ classdef emg_tbiNMBL < handle
             switch testPoint
                 case 1; % tp01
                     obj.tp01 = emgcyc;
+                    obj.tpFlags(1) = 1;
                 case 2; % tp02
                     obj.tp02 = emgcyc;
+                    obj.tpFlags(2) = 1;
                 case 6; % tp06
                     obj.tp06 = emgcyc;
+                    obj.tpFlags(3) = 1;
                 case 10; % tp10
                     obj.tp10 = emgcyc;
+                    obj.tpFlags(4) = 1;
             end
             disp(['trial data loaded into slot for testpoint ' num2str(testPoint) '.']);
         end
-        
-        function plotGaitCycle(obj, testPoint)
-            % this function plots the emg gait cycle data for 1 test Point
+        function plotGaitCycle(obj, testPoints, checkEmgLabels)
+            % this function plots the emg gait cycle data for array of test
+            % Points
             % Plots right and left leg muscles, 6 muscles (mean +/- std)
+            % e.g. sub1.plotGaitCycle() % plots all available testpoints
+            % e.g. sub1.plotGaitCycle([1 2]) % plots selected testpoints
+            % e.g. sub1.plotGaitCycle([1 2],1) % visually output all labels
+            % to manually verify the emg labels are consistent
             
-            % select correct testPoint data
-            if ~any(testPoint==[1 2 6 10])
-                error('Specified test point is not valid. test point must be integer value of 1, 2, 6, or 10');
-            end
-            try
-                switch testPoint
-                    case 1; % tp01
-                        emgcyc = obj.tp01.emg;
-                        emgcycstd = obj.tp01.emgstd;
-                        emgcyclabel = obj.tp01.emglabel;
-                    case 2; % tp02
-                        emgcyc = obj.tp02.emg;
-                        emgcycstd = obj.tp02.emgstd;
-                        emgcyclabel = obj.tp02.emglabel;
-                    case 6; % tp06
-                        emgcyc = obj.tp06.emg;
-                        emgcycstd = obj.tp06.emgstd;
-                        emgcyclabel = obj.tp06.emglabel;
-                    case 10; % tp10
-                        emgcyc = obj.tp10.emg;
-                        emgcycstd = obj.tp10.emgstd;
-                        emgcyclabel = obj.tp10.emglabel;
+            % if no testPoints array specified, plots all available testpoints
+            if nargin == 1
+                plotFlags = obj.tpFlags;
+                testPoints = flag2tp(obj.tpFlags);
+            else % use user specified testPoints
+                plotFlags = tp2flag(testPoints); % determines which test points to plot
+                % select correct testPoint data for plotting
+                for i = 1:4 % check that testpoint actually has data
+                    if plotFlags(i) && ~obj.tpFlags(i)
+                        warning(['test point ' num2str(testPoints(i)) 'has no data in it. Load data into it using loadTestPoint']);
+                        plotFlags(i) = 0;
+                    end
                 end
-            catch
-                error(['test point ' num2str(testPoint) 'has no data in it. Load data into it using loadTestPoint'])
+                
             end
-            % construct plot
-            figure()
-            suptitle_name = [obj.subjectID ' : Test Point ' num2str(testPoint)];
+            
+            if nargin == 3
+            % check emg labels are consistent
+            obj.checkConsistentEmgLabels(plotFlags);
+            end
+            
+            
+            % plotting parameters
+            figure('Name','EMG over Gait Cycle')
+            suptitle_name = [obj.subjectID ' : Test Point ' num2str(testPoints)];
             xAxisLabel = 'Percent of Gait Cycle';
             yAxisLimit = [0 3];
-            for j=1:6 % RIGHT LEG
-                subplot(6,2,2*j); % plots on right half of figure
-                hold on
-                shadedErrorBar([0:100]',emgcyc(:,j),emgcycstd(:,j),'b',1); % right leg
-                plot([0:100]',emgcyc(:,j),'b');
-                hold off
-                title(emgcyclabel(j));
-                ylim(yAxisLimit);
-                %xlabel(xAxisLabel);
-            end
-            for j=1:6 % LEFT LEG
-                subplot(6,2,2*j-1);
-                hold on
-                shadedErrorBar([0:100]',emgcyc(:,6+j),emgcycstd(:,6+j),'b',1); % left leg
-                plot([0:100]',emgcyc(:,6+j),'b');
-                hold off
-                title(emgcyclabel(6+j));
-                ylim(yAxisLimit);
-                %xlabel(xAxisLabel);
-            end
-            suptitle(suptitle_name);
-        end
+            plotColors = {'b' 'r' 'g' 'k'}; % the order of colors plotted, e.g. tp01 = blue
             
+            % plot the testpoints as specified by plotFlags
+            for i = 1:4
+                if plotFlags(i)
+                    
+                    % pull emg data
+                    switch i
+                        case 1; % tp01
+                            emgcyc = obj.tp01.emg;
+                            emgcycstd = obj.tp01.emgstd;
+                            emgcyclabel = obj.tp01.emglabel;  % these labels should be same for each trial
+                        case 2; % tp02
+                            emgcyc = obj.tp02.emg;
+                            emgcycstd = obj.tp02.emgstd;
+                            emgcyclabel = obj.tp02.emglabel;
+                        case 3; % tp06
+                            emgcyc = obj.tp06.emg;
+                            emgcycstd = obj.tp06.emgstd;
+                            emgcyclabel = obj.tp06.emglabel;
+                        case 4; % tp10
+                            emgcyc = obj.tp10.emg;
+                            emgcycstd = obj.tp10.emgstd;
+                            emgcyclabel = obj.tp10.emglabel;
+                    end
+                    
+                    % plot emg data
+                    for j=1:6;% RIGHT LEG
+                        subplot(6,2,2*j); % plots on right half of figure
+                        hold on
+                        shadedErrorBar([0:100]',emgcyc(:,j),emgcycstd(:,j),plotColors{i},1); % right leg
+                        handle(i) = plot([0:100]',emgcyc(:,j),plotColors{i});
+                        hold off
+                        title(emgcyclabel(j));
+                        ylim(yAxisLimit);
+                        %xlabel(xAxisLabel);
+                    end
+                    for j=1:6 % LEFT LEG
+                        subplot(6,2,2*j-1);
+                        hold on
+                        shadedErrorBar([0:100]',emgcyc(:,6+j),emgcycstd(:,6+j),plotColors{i},1); % left leg
+                        plot([0:100]',emgcyc(:,6+j),plotColors{i});
+                        hold off
+                        title(emgcyclabel(6+j));
+                        ylim(yAxisLimit);
+                        %xlabel(xAxisLabel);
+                    end
+                end
+            end
+            
+            
+            if exist('handle','var') % if cycles were plotted
+                % create legend
+                tp = flag2tp(plotFlags);
+                tp_strings = strcat('TP',strread(num2str(tp),'%s'));
+                
+                handle = handle(find(plotFlags==1));
+                h = legend(handle(:),tp_strings);
+                set(h,'Position',[.4 .001 .2 .1]); % normalized to figure : left, bottom, width, height
+                set(h,'Box','on','Orientation','horizontal','FontSize',12);
+                
+                % create title
+                suptitle(suptitle_name);
+            end
+        end
     end
     methods ( Access = private )
-    
+        function checkConsistentEmgLabels(obj, checkFlags)
+            % allows to visually output the emg data labels to check to see
+            % if the emg data labels are consistent, and didnt get mixed up
+            % when recording
+            
+            for i = 1:4
+                if checkFlags(i)
+                    % pull emg data labels
+                    switch i
+                        case 1; % tp01
+                            disp('TestPoint 1 EMG Muscle Labels:')
+                            disp(obj.tp01.emglabel');  % these labels should be same for each trial examined
+                        case 2; % tp02
+                            disp('TestPoint 2 EMG Muscle Labels:')
+                            disp(obj.tp02.emglabel');
+                        case 3; % tp06
+                            disp('TestPoint 6 EMG Muscle Labels:')
+                            disp(obj.tp06.emglabel');
+                        case 4; % tp10
+                            disp('TestPoint 10 EMG Muscle Labels:')
+                            disp(obj.tp10.emglabel');
+                    end
+                end
+            end
+            
+        end
     end         
+end
+
+function flags = tp2flag(testPoints)
+% input: an array of testpoints e.g. [1 6 10]
+% output: flags of those testpoints e.g. [1 0 1 1]
+flags = [0 0 0 0];
+for i = 1:length(testPoints)
+    switch testPoints(i)
+        case 1; % tp01
+            flags(1) = 1;
+        case 2; % tp02
+            flags(2) = 1;
+        case 6; % tp06
+            flags(3) = 1;
+        case 10; % tp10
+            flags(4) = 1;
+        otherwise
+            disp(['Specified test point ' num2str(testPoints(i)) 'is not valid,']);
+            disp(['and has been dropped from analysis. test point must be integer']);
+            disp(['value of 1, 2, 6, or 10.    e.g. testPoints = [1 2 6 10]']);
+    end
+end
+end
+
+function tp = flag2tp(flags)
+% input: flags of the testpoints e.g. [1 0 1 1]
+% output: an array of testpoints e.g. [1 6 10]
+tp = [];
+tp_choices = [1 2 6 10];
+for i = 1:4
+    if flags(i)
+        tp = [tp tp_choices(i)];
+    end
+end
 end
