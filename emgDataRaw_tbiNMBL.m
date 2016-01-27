@@ -195,7 +195,7 @@ classdef emgDataRaw_tbiNMBL < handle
             obj.testPoint = testPoints{prompt2_answer};
             
             % third, update specific trial info
-            trials = tbiConstants.trialType;
+            trials = constants_tbiNMBL.trialType;
             prompt3_defaultAnswer= find(strcmp(obj.trialType,trials)==1);
             if isempty(prompt3_defaultAnswer); prompt3_defaultAnswer = 1; end; % if setting for first time
             prompt3_title = 'Select Trial Type:';

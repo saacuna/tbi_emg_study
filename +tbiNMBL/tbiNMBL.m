@@ -19,11 +19,12 @@ classdef tbiNMBL < handle
             obj.subjects = cell(0); %setup database of subjects
         end
         function addSubject(obj) % add new subject to database
-            obj.subjects{length(obj.subjects)+1} = 'subject';
-            disp(obj.subjects);
+            obj.subjects{length(obj.subjects)+1} = tbiNMBL.subject_tbiNMBL(); % creates a new instance of the subject class
+            disp(['Subject ' obj.subjects{end}.ID ' has been added to the database.']);
+            obj.listSubjects();
         end
         function removeSubject(obj,subjNum) % remove a subject from the database
-            if ~any(length(obj.subjects)==subjNum) % subject number must be valid
+            if (length(obj.subjects)<subjNum) % subject number must be valid
                 disp(['Subject ' num2str(subjNum) ' is not in this database.']);
             else
                 obj.subjects(subjNum) = []; % deletes that cell and resizes subject array
@@ -32,8 +33,16 @@ classdef tbiNMBL < handle
             end
         end
         function listSubjects(obj) % lists off all subjects in the database
-            disp('Subjects in database:');
-            disp(obj.subjects');
+            if isempty(obj.subjects) % dont display if empty
+                disp('     None.');
+            else % compile output display
+                fprintf('%s\n\t%s\t%s\t%s\t%s\n' ,'Subjects in database:','Index','Subject','StimLvl','TestPts'); % list headers
+                indexLength = length(obj.subjects); 
+                for indexNumber = 1:indexLength % print out index number and subject ID number, etc
+                    vals = {indexNumber, obj.subjects{indexNumber}.ID, obj.subjects{indexNumber}.stimLvl, obj.subjects{indexNumber}.numTestPoints};
+                    fprintf('\t%d\t%s\t%s\t%d\n',vals{:});
+                end
+            end
         end
         
     end
