@@ -10,6 +10,9 @@ classdef tbiNMBL < handle
     properties (GetAccess = 'public', SetAccess = 'private')
         subjects; % stores emg & info on each subject
     end
+    properties (Dependent)
+        numSubjects; % how many subjects have been stored in database
+    end
     
     methods (Access = public)
         % if using separate file, declare function signature
@@ -23,28 +26,36 @@ classdef tbiNMBL < handle
             disp(['Subject ' obj.subjects{end}.ID ' has been added to the database.']);
             obj.listSubjects();
         end
-        function removeSubject(obj,subjNum) % remove a subject from the database
-            if (length(obj.subjects)<subjNum) % subject number must be valid
-                disp(['Subject ' num2str(subjNum) ' is not in this database.']);
+        function removeSubject(obj,subjectIndexNumber) % remove a subject from the database
+            if (obj.numSubjects < subjectIndexNumber) % subject number must be valid
+                disp(['Subject Index #' num2str(subjectIndexNumber) ' is not in this database.']);
             else
-                obj.subjects(subjNum) = []; % deletes that cell and resizes subject array
-                disp(['Subject ' num2str(subjNum) ' removed from database.']);
+                obj.subjects(subjectIndexNumber) = []; % deletes that cell and resizes subject array
+                disp(['Subject Index #' num2str(subjectIndexNumber) ' removed from database. Database re-indexed.']);
                 obj.listSubjects();
             end
         end
         function listSubjects(obj) % lists off all subjects in the database
-            if isempty(obj.subjects) % dont display if empty
-                disp('     None.');
+            if ~obj.numSubjects % dont display if empty database
+                disp('No subjects in database.');
             else % compile output display
                 fprintf('%s\n\t%s\t%s\t%s\t%s\n' ,'Subjects in database:','Index','Subject','StimLvl','TestPts'); % list headers
-                indexLength = length(obj.subjects); 
-                for indexNumber = 1:indexLength % print out index number and subject ID number, etc
+                for indexNumber = 1:obj.numSubjects % print out index number and subject ID number, etc
                     vals = {indexNumber, obj.subjects{indexNumber}.ID, obj.subjects{indexNumber}.stimLvl, obj.subjects{indexNumber}.numTestPoints};
                     fprintf('\t%d\t%s\t%s\t%d\n',vals{:});
                 end
             end
         end
         
+    end
+    methods % used for set and get methods
+        function numSubj = get.numSubjects(obj) % calculate the number of test points stored
+            numSubj = length(obj.subjects);
+        end
+        function set.numSubjects(obj,~) % cant set dependent number of test points
+            fprintf('%s%d\n','numSubjects is: ',obj.numSubjects)
+            error('You cannot set the numSubjects property');
+        end
     end
     
 end

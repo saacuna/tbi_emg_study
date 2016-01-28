@@ -33,39 +33,63 @@ classdef subject_tbiNMBL < handle
         end
         function setStatus(subj) % update the status of the subject
             statuses = tbiNMBL.constants_tbiNMBL.subjectStatus;
-            prompt2_defaultAnswer = find(strcmp(subj.status,statuses)==1); % find default answer
-            if isempty(prompt2_defaultAnswer); prompt2_defaultAnswer = 1; end; % if setting for first time
-            prompt2_title = 'Specify TBI Subject Status:';
-            prompt2_title2 = 'Subject Status';
-            prompt2_answer = listdlg('PromptString',prompt2_title,'SelectionMode','single','Name',prompt2_title2,'ListString',statuses,'InitialValue',prompt2_defaultAnswer,'ListSize',[150 75]);
-            if isempty(prompt2_answer); return; end; % user canceled. bail out.
+            prompt_defaultAnswer = find(strcmp(subj.status,statuses)==1); % find default answer
+            if isempty(prompt_defaultAnswer); prompt_defaultAnswer = 1; end; % if setting for first time
+            prompt_title = 'Specify TBI Subject Status:';
+            prompt_title2 = 'Subject Status';
+            prompt_answer = listdlg('PromptString',prompt_title,'SelectionMode','single','Name',prompt_title2,'ListString',statuses,'InitialValue',prompt_defaultAnswer,'ListSize',[150 75]);
+            if isempty(prompt_answer); return; end; % user canceled. bail out.
             % update status
-            subj.status = statuses{prompt2_answer};
+            subj.status = statuses{prompt_answer};
         end
         function setStimLvl(subj) % update PoNS stimulation type
             PoNSLevel = tbiNMBL.constants_tbiNMBL.stimLvl;
-            prompt3_defaultAnswer= find(strcmp(subj.stimLvl,PoNSLevel)==1);
-            if isempty(prompt3_defaultAnswer); prompt3_defaultAnswer = 1; end; % if setting for first time
-            prompt3_title = 'Select PoNS stimulation type:';
-            prompt3_title2 = 'PoNS type';
-            prompt3_answer = listdlg('PromptString',prompt3_title,'SelectionMode','single','Name',prompt3_title2,'ListString',PoNSLevel,'InitialValue',prompt3_defaultAnswer,'ListSize',[150 75]);
-            if isempty(prompt3_answer); return; end; % user canceled. bail out.
+            prompt_defaultAnswer= find(strcmp(subj.stimLvl,PoNSLevel)==1);
+            if isempty(prompt_defaultAnswer); prompt_defaultAnswer = 1; end; % if setting for first time
+            prompt_title = 'Select PoNS stimulation type:';
+            prompt_title2 = 'PoNS type';
+            prompt_answer = listdlg('PromptString',prompt_title,'SelectionMode','single','Name',prompt_title2,'ListString',PoNSLevel,'InitialValue',prompt_defaultAnswer,'ListSize',[150 75]);
+            if isempty(prompt_answer); return; end; % user canceled. bail out.
             % update stimulation level
-            subj.stimLvl = PoNSLevel{prompt3_answer};
+            subj.stimLvl = PoNSLevel{prompt_answer};
         end
         function setSubjectID(subj) % update subject identifiers
-            prompt1 = {'Subject ID:   (ex: "TBI-06")',...
+            prompt = {'Subject ID:   (ex: "TBI-06")',...
                 'Subject Initials:   (ex: "SA")'};
-            prompt1_defaultAnswer = {subj.ID,subj.initials};
-            prompt1_title = 'Subject Information';
-            prompt1_answer = inputdlg(prompt1,prompt1_title,[1 60],prompt1_defaultAnswer);
-            if isempty(prompt1_answer); return; end; % user canceled. bail out.
+            prompt_defaultAnswer = {subj.ID,subj.initials};
+            prompt_title = 'Subject Information';
+            prompt_answer = inputdlg(prompt,prompt_title,[1 60],prompt_defaultAnswer);
+            if isempty(prompt_answer); return; end; % user canceled. bail out.
             % update subject info
-            subj.ID = prompt1_answer{1};
-            subj.initials = prompt1_answer{2};
+            subj.ID = prompt_answer{1};
+            subj.initials = prompt_answer{2};
         end
-        function addTestPoint()
-            
+        function addTestPoint(subj) % add emg data from a testpoint 
+            subj.testPoints{length(subj.testPoints)+1} = tbiNMBL.testPoint_tbiNMBL(); % creates a new instance of the subject class
+            disp(['Test point ' num2str(subj.testPoints{end}.TP) ' has been added to ' subj.ID '.']);
+            subj.listTestPoints();
+        end
+        function removeTestPoint(subj, testPointIndexNumber) % remove testpoint data
+            if (subj.numTestPoints < testPointIndexNumber) % subject number must be valid
+                disp(['Test Point Index #' num2str(testPointIndexNumber) ' is not in this database.']);
+            else
+                subj.testPoints(testPointIndexNumber) = []; % deletes that cell and resizes subject array
+                disp(['Test Point Index #' num2str(testPointIndexNumber) ' removed from database. Database re-indexed.']);
+                subj.listTestPoints();
+            end
+        end
+        function listTestPoints(subj) % list off all testpoints for this subject
+            if ~subj.numTestPoints % if no testpoint data stored yet
+                disp('No testPoint data for this subject has been stored.');
+            else % compile output display
+                fprintf('%s%s%s\n','Test Points for Subject ',subj.ID,':'); % list headers
+                fprintf('\t%s\t%s\t%s\n','Index','TestPt','numTrials'); % list headers
+                indexLength = subj.numTestPoints;
+                for indexNumber = 1:indexLength % print out index number and subject ID number, etc
+                    vals = {indexNumber, subj.testPoints{indexNumber}.TP, subj.testPoints{indexNumber}.numTrials};
+                    fprintf('\t%d\t%d\t%d\n',vals{:});
+                end
+            end
         end
     end
     methods % used for set and get methods
