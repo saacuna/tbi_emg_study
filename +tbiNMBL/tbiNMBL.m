@@ -22,7 +22,7 @@ classdef tbiNMBL < handle
             obj.subjects = cell(0); %setup database of subjects
         end
         function addSubject(obj) % add new subject to database
-            obj.subjects{length(obj.subjects)+1} = tbiNMBL.subject_tbiNMBL(); % creates a new instance of the subject class
+            obj.subjects{obj.numSubjects+1} = tbiNMBL.subject_tbiNMBL(); % creates a new instance of the subject class
             disp(['Subject ' obj.subjects{end}.ID ' has been added to the database.']);
             obj.listSubjects();
         end
@@ -39,10 +39,16 @@ classdef tbiNMBL < handle
             if ~obj.numSubjects % dont display if empty database
                 disp('No subjects in database.');
             else % compile output display
-                fprintf('%s\n\t%s\t%s\t%s\t%s\n' ,'Subjects in database:','Index','Subject','StimLvl','TestPts'); % list headers
+                fprintf('\t%s\n\t%s\t%s\t%s\t%s\t%s\t%s\n' ,'Subjects in database:','Index','ID','StimLvl','TestPts','Init.','Status'); % list headers
+                fprintf('\t%s\t%s\t%s\t%s\t%s\t%s\n' ,'-------','-------','-------','-------','-------','-------'); 
                 for indexNumber = 1:obj.numSubjects % print out index number and subject ID number, etc
-                    vals = {indexNumber, obj.subjects{indexNumber}.ID, obj.subjects{indexNumber}.stimLvl, obj.subjects{indexNumber}.numTestPoints};
-                    fprintf('\t%d\t%s\t%s\t%d\n',vals{:});
+                    vals = {indexNumber,...
+                        obj.subjects{indexNumber}.ID,... 
+                        obj.subjects{indexNumber}.stimLvl,... 
+                        obj.subjects{indexNumber}.numTestPoints,... 
+                        obj.subjects{indexNumber}.initials,... 
+                        obj.subjects{indexNumber}.status};
+                    fprintf('\t%d\t%s\t%s\t%d\t%s\t%s\n',vals{:});
                 end
             end
         end

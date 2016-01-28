@@ -65,15 +65,15 @@ classdef subject_tbiNMBL < handle
             subj.initials = prompt_answer{2};
         end
         function addTestPoint(subj) % add emg data from a testpoint 
-            subj.testPoints{length(subj.testPoints)+1} = tbiNMBL.testPoint_tbiNMBL(); % creates a new instance of the subject class
+            subj.testPoints{subj.numTestPoints+1} = tbiNMBL.testPoint_tbiNMBL(); % creates a new instance of the testPoint class
             disp(['Test point ' num2str(subj.testPoints{end}.TP) ' has been added to ' subj.ID '.']);
             subj.listTestPoints();
         end
         function removeTestPoint(subj, testPointIndexNumber) % remove testpoint data
-            if (subj.numTestPoints < testPointIndexNumber) % subject number must be valid
-                disp(['Test Point Index #' num2str(testPointIndexNumber) ' is not in this database.']);
+            if (subj.numTestPoints < testPointIndexNumber) % testpoint number must be valid
+                disp(['Test Point Index #' num2str(testPointIndexNumber) ' is not in this database for subject' subj.ID '.']);
             else
-                subj.testPoints(testPointIndexNumber) = []; % deletes that cell and resizes subject array
+                subj.testPoints(testPointIndexNumber) = []; % deletes that cell and resizes testpoint array
                 disp(['Test Point Index #' num2str(testPointIndexNumber) ' removed from database. Database re-indexed.']);
                 subj.listTestPoints();
             end
@@ -82,12 +82,20 @@ classdef subject_tbiNMBL < handle
             if ~subj.numTestPoints % if no testpoint data stored yet
                 disp('No testPoint data for this subject has been stored.');
             else % compile output display
-                fprintf('%s%s%s\n','Test Points for Subject ',subj.ID,':'); % list headers
-                fprintf('\t%s\t%s\t%s\n','Index','TestPt','numTrials'); % list headers
+                fprintf('\t%s%s%s\n','Test Points for Subject ',subj.ID,':'); % list headers
+                fprintf('\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n','Index','TestPt','nTrials', 'PrefSpd', 'BaseSpd', 'Notes', 'Admin.','Date'); % list headers
+                fprintf('\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' ,'-------','-------','-------','-------','-------','-------','-------','-------'); 
                 indexLength = subj.numTestPoints;
-                for indexNumber = 1:indexLength % print out index number and subject ID number, etc
-                    vals = {indexNumber, subj.testPoints{indexNumber}.TP, subj.testPoints{indexNumber}.numTrials};
-                    fprintf('\t%d\t%d\t%d\n',vals{:});
+                for indexNumber = 1:indexLength % print out index number and walkingspeed_preferred, etc
+                    vals = {indexNumber,...
+                        subj.testPoints{indexNumber}.TP,...
+                        subj.testPoints{indexNumber}.numTrials,...
+                        subj.testPoints{indexNumber}.walkingSpeed_preferred,...
+                        subj.testPoints{indexNumber}.walkingSpeed_baseline,...
+                        subj.testPoints{indexNumber}.noteFlag,...
+                        subj.testPoints{indexNumber}.dataCollectedBy,...
+                        subj.testPoints{indexNumber}.dateCollected};
+                    fprintf('\t%d\t%d\t%d\t%s\t%s\t%d\t%s\t%s\n',vals{:});
                 end
             end
         end
