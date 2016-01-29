@@ -5,6 +5,20 @@ classdef testPoint_tbiNMBL < handle
     % Description:
     % This class houses the emg data for one testpoint allowing
     % for easy comparison  within different trials during that testpoint
+    %
+    % Example usage:
+    %   tp = tbiNMBL.testPoint_tbiNMBL() % create a testpoint to store trials of emg data
+    %   tp.setTestPointMetaData() % update test point metadata
+    %   tp.addTrial() % creates instance of the trial class in the database
+    %   tp.readNotes() % read notes associated with the testpoint
+    %   tp.editNotes() % edit notes associated with the testpoint
+    %   tp.addTrial() % add second trial
+    %   tp.listTrials() % display list of all trials in the testpoint database
+    %   tp.plotTrial(2); % plots trial 2 only
+    %   tp.plotTestPoint([1 2]) % plot first and second trial only
+    %   tp.plotTestPoint() % plots all trials in testpoint
+    %   tp.removeTrial(2) % remove the second trial from the testpoint database
+    
     properties (GetAccess = 'public', SetAccess = 'private')
         TP; % which test point it is, i.e. 1, 2, 6, 10
         dateCollected; % when test point collection was done, e.g. 2015-12-25
@@ -39,7 +53,7 @@ classdef testPoint_tbiNMBL < handle
             if isempty(prompt_answer); return; end; % user canceled. bail out.
             tp.TP = tbiNMBL.constants_tbiNMBL.TP{prompt_answer}; % update TP
         end
-        function setTestPointMetaData(tp) % update test point collection date
+        function setTestPointMetaData(tp) % update test point metadata
             prompt = {'Date Test Point Collected:   (yyyy-MM-dd)',...
                 'Data Collected by:   (ex: "SA")',...
                 'Preferred walking speed:   (ex: "2.1 mph")',...
@@ -80,9 +94,7 @@ classdef testPoint_tbiNMBL < handle
             tp.listTrials();
         end
         function removeTrial(tp, trialIndexNumber) % remove collection trial to test point
-            if (tp.numTrials < trialIndexNumber) % trial number must be valid
-                disp(['Trial Index #' num2str(trialIndexNumber) ' is not in this database for test point ' num2str(tp.TP) '.']);
-            else
+            if tp.checkValidTrialIndexNumber(trialIndex); % selected trial number must be in database
                 tp.trials(trialIndexNumber) = []; % deletes that cell and resizes subject array
                 disp(['Trial Index #' num2str(trialIndexNumber) ' removed from database. Database re-indexed.']);
                 tp.listTrials();
@@ -92,7 +104,7 @@ classdef testPoint_tbiNMBL < handle
             if ~tp.numTrials % if no trial data stored yet
                 disp('No trial data for this testpoint has been stored.');
             else % compile output display
-                fprintf('\t%s%s%s\n','Trial Data for testPoint ',tp.TP,':'); % list headers
+                fprintf('\t%s%s%s\n','Trial Data for testPoint ',num2str(tp.TP),':'); % list headers
                 fprintf('\t%s\t%s\t%s\t%s\t%s\t%s\n','Index','Trial Type','emgFreq','emgData','emgStd','emgLabl'); % list headers
                 fprintf('\t%s\t%s\t%s\t%s\t%s\t%s\n' ,'-------','--------------','-------','-------','-------','-------');
                 indexLength = tp.numTrials;
@@ -100,11 +112,97 @@ classdef testPoint_tbiNMBL < handle
                     vals = {indexNumber,...
                         tp.trials{indexNumber}.trialType,...
                         tp.trials{indexNumber}.emgFreq,...
-                        tp.trials{indexNumber}.emgData,...
-                        tp.trials{indexNumber}.emgStd,...
-                        tp.trials{indexNumber}.emgLabel};
+                        tp.trials{indexNumber}.emgDataSize,...
+                        tp.trials{indexNumber}.emgStdSize,...
+                        tp.trials{indexNumber}.emgLabelSize};
                     fprintf('\t%d\t%s\t%d\t%s\t%s\t%s\n',vals{:});
                 end
+            end
+        end
+        function plotTrial(tp,trialIndex,checkEmgLabels)
+            % plots the trials specified by trialIndexNumber
+            % Plots right and left leg muscles, 6 muscles (mean +/- std)
+            % e.g. tp1.plotTestPoint(2,1) % plot trial2, visually output all labels
+            % to manually verify the emg labels are consistent
+            % input:
+            % trialIndexNumber = trial of interest e.g. 2
+            % optional input:
+            % checkEmgLabels = 0 (default) or 1, whether to print out the emg labels
+            if nargin == 1
+                disp('No trialIndex number specified, so this wont plot anything.');
+                return
+            elseif nargin == 2 % if not specified, dont view labels
+                checkEmgLabels = 0;
+            end
+            if length(trialIndex) > 1; error('can only plot one trial with this method. Suggest using testPoint_tniNMBL.plotTestPoint() instead'); end;
+            if ~tp.checkValidTrialIndexNumber(trialIndex); return; end; % selected trial number must be in database
+
+            % plot the trial
+            figure('Name',['Trial ' num2str(trialIndex) ' EMG']);
+            tp.trials{trialIndex}.plotTrialEmg(1);
+            suptitle(['Trial ' num2str(trialIndex) ' EMG']);
+            
+            % optionally diplay trial emg labels
+            tp.displayEmgTrials(checkEmgLabels, trialIndex);
+        end
+        function plotTestPoint(tp,trialIndex, checkEmgLabels)
+            % this function plots the emg gait cycle data for array of
+            % trials in test point.
+            % Plots right and left leg muscles, 6 muscles (mean +/- std)
+            % e.g. tp1.plotTestPoint() % plots all available testpoints
+            % e.g. tp1.plotTestPoint([1 3]) % plots selected testpoints
+            % e.g. tp1.plotTestPoint([1 3],1) % visually output all labels
+            % to manually verify the emg labels are consistent
+            % optional inputs:
+            % trialIndexNumbers = array of the trials of interest, e.g. [1 3]
+            % checkEmgLabels = 0 (default) or 1, whether to print out the emg labels
+            if nargin == 1 % if no trials specified, plot them all, dont view labels
+                trialIndex = 1:tp.numTrials;
+                checkEmgLabels = 0;
+            elseif nargin == 2 % if checkEmgLabels not specified, dont view labels
+                checkEmgLabels = 0;
+            end
+            if ~tp.checkValidTrialIndexNumber(trialIndex); return; end; % selected trial number must be in database
+
+            % plot the trials for the testpoint
+            figure('Name',['Test Point ' num2str(tp.TP) ' trials']);
+            for i = trialIndex
+                tp.trials{i}.plotTrialEmg(i); % plots
+                tp.displayEmgTrials(checkEmgLabels, i); % optionally diplay trial emg labels
+            end
+            
+            %create super title
+            suptitle(['Test Point ' num2str(tp.TP) ' : Trials ' num2str(trialIndex)]);
+            
+            % create workaround custom legend, not the cleanest, but easier than
+            % moving around handles from different classes
+            hold on
+            for i = trialIndex
+                handle(i) = plot(NaN,NaN,tbiNMBL.constants_tbiNMBL.emgPlotColors{i});
+            end
+            hold off
+            trial_strings = strcat('Trial ',strread(num2str(trialIndex),'%s'));
+            h = legend(handle(:),trial_strings);
+            set(h,'Position',tbiNMBL.constants_tbiNMBL.legendPosition);
+            set(h,'Box','on','Orientation','horizontal','FontSize',12);
+            
+        end
+    end
+    methods (Access = private)
+        function displayEmgTrials(tp,checkEmgLabels, trialIndex) % display trial emg labels
+            if checkEmgLabels == 1
+                disp(['Trial ' num2str(trialIndex) ' EMG Muscle Labels:'])
+                tp.trials{trialIndex}.checkEmgLabels()
+            elseif checkEmgLabels ~= 0
+                warning('the argument checkEmgLabels must be 1, 0, or omitted');
+            end
+        end
+        function valid = checkValidTrialIndexNumber(tp,trialIndex) % selected trial number must be in database
+            if (tp.numTrials < max(trialIndex)) 
+                disp(['trialIndex is invalid. There are only ' num2str(tp.numTrials) ' trials in testpoint ' num2str(tp.TP) '.']);
+                valid = 0;
+            else
+                valid = 1;
             end
         end
     end

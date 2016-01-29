@@ -3,7 +3,23 @@ classdef trial_tbiNMBL < handle
     % Author:   Samuel Acuna
     % Date:     27 Jan 2016
     % Description:
-    % This class houses the emg data for one trial
+    % This class file is used to store all the EMG data from a single
+    % trial. The class creates a much smaller data file of the emg curves
+    % for the average gait cycle of the trial, as well as collecting all
+    % the trial emg labels and freq. features a plot of emg data
+    %
+    % The raw emg data must be in a .txt format, not .hpf
+    % To create the .txt version, open program 'emgworks_analysis' on collection
+    % computer. load .hpf into workspace, click 'Tools', 'export to text tile'. Put this
+    % file in the same location as the original .hpf
+    %
+    % Example usage:
+    %       tr1 = tbiNMBL.trial_tbiNMBL() %load emg data and calculate average emg cycle data
+    %       tr1.plotTrial() % plots average emg cycle data for all muscles recorded
+    %       tr1.setTrialType() % update trialtype for file 
+    %       tr1.viewEmgLabels() % look at list of EMG labels from the collection
+    %       save('tr1.mat','emg1') % save raw and calculated data, so dont have to calculate again
+
     properties (GetAccess = 'public', SetAccess = 'private')
         trialType; % e.g. check muscles, treadmill_preferredSpeed, etc. see constants_tbiNMBL
         emgData; % normalized emg data over the average gait cycle
@@ -11,6 +27,12 @@ classdef trial_tbiNMBL < handle
         emgLabel; % names of all the muscles corresponding to each column of emg
         emgFreq; % sampling frequency of this emg data
     end
+    properties (Dependent)
+        emgDataSize; % m x n, string of the size of the emg data matrix
+        emgStdSize; % m x n, string of the size of the emg std matrix
+        emgLabelSize; % m x n, string of the size of the emg label matrix
+    end
+    
     methods (Access = public)
         function tr = trial_tbiNMBL(infile, inpath) % constructor function
             %   Inputs (optional)
@@ -101,37 +123,46 @@ classdef trial_tbiNMBL < handle
             tr.trialType = trialTypeChoices{prompt_answer};
         end
         function plotTrial(tr)
-            % this function plots the emg gait cycle data for the
+            % this wrapper function plots the emg gait cycle data for the
             % calculated trial. cool, eh?
             %   6 muscles (mean +/- std)
-
-            
-            figure() 
+            figure('Name','Trial EMG');
+            tr.plotTrialEmg(1);
+        end
+        function viewEmgLabels(tr) % look at list of EMG labels from the collection
+            disp('Trial EMG Muscle Labels:')
+            tr.checkEmgLabels()
+        end
+    end
+    
+    methods (Access = {?tbiNMBL.testPoint_tbiNMBL})
+        % plotting functions
+        function plotTrialEmg(tr,plotColorIndex)
             for j=1:6 % RIGHT LEG
-                subplot(6,2,2*j);
+                subplot(6,2,2*j); % plots on right half of figure
                 hold on
-                shadedErrorBar([0:100]',tr.emgData(:,j),tr.emgStd(:,j),tbiNMBL.constants_tbiNMBL.emgPlotColors{1},1);
-                plot([0:100]',tr.emgData(:,j),tbiNMBL.constants_tbiNMBL.emgPlotColors{1});
+                shadedErrorBar([0:100]',tr.emgData(:,j),tr.emgStd(:,j),tbiNMBL.constants_tbiNMBL.emgPlotColors{plotColorIndex},1);
+                plot([0:100]',tr.emgData(:,j),tbiNMBL.constants_tbiNMBL.emgPlotColors{plotColorIndex});
                 hold off
                 title(tr.emgLabel(j));
                 ylim(tbiNMBL.constants_tbiNMBL.emgPlotYAxisLimits);
                 xlabel(tbiNMBL.constants_tbiNMBL.emgPlotXAxisLabel);
             end
             for j=1:6 % LEFT LEG
-                subplot(6,2,2*j-1);
+                subplot(6,2,2*j-1); % plots on left half of figure
                 hold on
-                shadedErrorBar([0:100]',tr.emgData(:,6+j),tr.emgStd(:,6+j),tbiNMBL.constants_tbiNMBL.emgPlotColors{1},1);
-                plot([0:100]',tr.emgData(:,6+j),tbiNMBL.constants_tbiNMBL.emgPlotColors{1});
+                shadedErrorBar([0:100]',tr.emgData(:,6+j),tr.emgStd(:,6+j),tbiNMBL.constants_tbiNMBL.emgPlotColors{plotColorIndex},1);
+                plot([0:100]',tr.emgData(:,6+j),tbiNMBL.constants_tbiNMBL.emgPlotColors{plotColorIndex});
                 hold off
                 title(tr.emgLabel(6+j));
                 ylim(tbiNMBL.constants_tbiNMBL.emgPlotYAxisLimits);
                 xlabel(tbiNMBL.constants_tbiNMBL.emgPlotXAxisLabel);
-            end
-            
+            end 
         end
-   
+        function checkEmgLabels(tr)
+            disp(tr.emgLabel');  % these labels should be same for each trial examined
+        end
     end
-    
     methods (Access = private)
         % main functions used in calculating emg data
         function [emg, ax, ay, az] = load_emgworks(tr,infile,inpath)
@@ -421,6 +452,32 @@ classdef trial_tbiNMBL < handle
             kk=[0:(n-1)]/(n-1);
             yf=interp1(x,y,kk,'*pchip');
             
+        end
+    end
+    methods % used for set and get methods
+        function dataSize = get.emgDataSize(tr) %m x n, string of the size of the emg data matrix
+            dataSize_num = size(tr.emgData);
+            dataSize = [num2str(dataSize_num(1)) 'x' num2str(dataSize_num(2))];
+        end
+        function set.emgDataSize(tr,~) % cant set size of emg data matrix
+            fprintf('%s%d\n','emgDataSize is: ',tr.emgDataSize)
+            error('You cannot set the emgDataSize property');
+        end
+        function stdSize = get.emgStdSize(tr) %m x n, string of the size of the emg data matrix
+            stdSize_num = size(tr.emgStd);
+            stdSize = [num2str(stdSize_num(1)) 'x' num2str(stdSize_num(2))];
+        end
+        function set.emgStdSize(tr,~) % cant set size of emg data matrix
+            fprintf('%s%d\n','emgStdSize is: ',tr.emgStdSize)
+            error('You cannot set the emgStdSize property');
+        end
+        function labelSize = get.emgLabelSize(tr) %m x n, string of the size of the emg data matrix
+            labelSize_num = size(tr.emgLabel);
+            labelSize = [num2str(labelSize_num(1)) 'x' num2str(labelSize_num(2))];
+        end
+        function set.emgLabelSize(tr,~) % cant set size of emg data matrix
+            fprintf('%s%d\n','emgLabelSize is: ',tr.emgLabelSize)
+            error('You cannot set the emgLabelSize property');
         end
     end
 end
