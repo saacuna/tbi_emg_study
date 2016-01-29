@@ -1,11 +1,10 @@
-% driver for emg_tbiNMBL
+% driver for subject_emg_tbiNMBL
 
 
 
 
 
 
-return
 hy01 = emg_tbiNMBL()
 hy01.loadTestPoint(1)
 hy01.loadTestPoint(2)

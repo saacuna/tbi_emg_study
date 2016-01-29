@@ -12,7 +12,8 @@ classdef subject_tbiNMBL < handle
     %      subj1.listTrials(1); % list trial of selected testPoint 1
     %      subj1.plotTestPoint(1) % plot testPoint 1
     %      subj1.list % lists all data
-    
+    %      subj1.plotSubject()
+    %      subj1.correlationOfTestPoint()
     
     properties (GetAccess = 'public', SetAccess = 'private')
         ID; % e.g. TBI-06
@@ -122,7 +123,7 @@ classdef subject_tbiNMBL < handle
             % plot all the trials in the testPoint
             figure('Name',['Test Point ' num2str(testPointIndex)]);
             subj.testPoints{testPointIndex}.plotTestPointEmg(trialIndex,checkEmgLabels);
-            suptitle(['Test Point ' num2str(testPointIndex)]); % create supertitle
+            suptitle(['Subject ' subj.ID ' : Test Point ' num2str(testPointIndex)]); % create supertitle
             subj.testPoints{testPointIndex}.plotTestPointLegend(trialIndex); % create legend
         end
         function addTrial(subj,testPointIndex) % add trial to selected testPoint
@@ -213,6 +214,11 @@ classdef subject_tbiNMBL < handle
             if ~subj.checkValidTrialsInTestPoint(testPointIndex,subj.testPoints{testPointIndex}.numTrials); return; end;
             
             corrOfTP = subj.testPoints{testPointIndex}.corrTestPoint(); % calc correlation across testPoint
+            
+            % list the calculated correlations, if corrOfTP is 12x2 
+            if isequal(size(corrOfTP{1}),[2 2])
+                subj.listCorrelations(corrOfTP);
+            end
         end
         function corrAcTP = correlationAcrossTestPoints(subj,trialIndex)
             % Outputs correlation of muscle across same trialType across testPoints of same subject
@@ -262,13 +268,12 @@ classdef subject_tbiNMBL < handle
                 M(:,1) = subj1.testPoints{testPointIndex}.trials{trialIndex}.emgData(:,muscle); % assemble observation matrix for correlation
                 M(:,2) = subj2.testPoints{testPointIndex}.trials{trialIndex}.emgData(:,muscle); % assemble observation matrix for correlation
                 
-                corrM = corrcoef(M(:,:)); % correlation matrix of a muscle between subjects, for 1 testpoint, 1 trial in that testpoint
-                corrSubj{muscle,1} = corrM(1,2); % pull out correlation coeff between subj1 and subj2
+                corrSubj{muscle,1} = corrcoef(M(:,:)); % correlation matrix of a muscle between subjects, for 1 testpoint, 1 trial in that testpoint
                 corrSubj{muscle,2} = subj1.testPoints{testPointIndex}.trials{trialIndex}.emgLabel{muscle}; % muscle name
             end
             
             % list the calculated correlations
-            subj1.listCorrSubj(corrSubj);
+            subj1.listCorrelations(corrSubj);
         end
     end
     methods (Access = private)
@@ -311,12 +316,12 @@ classdef subject_tbiNMBL < handle
             fprintf('\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n','Index','TestPt','nTrials', 'PrefSpd', 'BaseSpd', 'Notes', 'Admin.','Date'); % list headers
             fprintf('\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' ,'-------','-------','-------','-------','-------','-------','-------','-------');
         end
-        function listCorrSubj(subj,corrSubj)
+        function listCorrelations(subj,corrCoefs)
             % corrSubj will always be 12x2 cell
             fprintf('\n\t%s\t%s\n\t%s\t%s\n','CorCoef','Muscle','-------','-------'); % list headers
         
             for muscle = 1:12 % list correlation coeff
-            fprintf('\t%1.4f\t%s\n',corrSubj{muscle,1},corrSubj{muscle,2});
+            fprintf('\t%1.4f\t%s\n',corrCoefs{muscle,1}(1,2),corrCoefs{muscle,2});
             end
             
         end
