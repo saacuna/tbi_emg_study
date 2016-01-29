@@ -199,6 +199,24 @@ classdef subject_tbiNMBL < handle
             suptitle(['Subject ', subj.ID, ' : Test Point ' num2str(testPointIndex)]); % create supertitle
             subj.plotSubjectLegend(testPointIndex); % create legend
         end
+        function corrTP = correlationOfTestPoint(subj,testPointIndex)
+            % Across conditions in a single testPoint of same subject (preferred v baseline v overground)
+            %shows consistency of gait in subject for that point in time
+            if nargin == 1 
+                disp('No testPointIndex number specified, so this wont correlate anything.');
+                return
+            end
+            if length(testPointIndex) > 1; error('can only plot one trial with this method. Suggest using testPoint_tniNMBL.plotTestPoint() instead'); end;
+            if ~subj.checkValidTestPointIndex(testPointIndex); return; end; % selected testPoint number must be in database
+            
+            % testPoint must have existing trials
+            if ~subj.checkValidTrialsInTestPoint(testPointIndex,subj.testPoints{testPointIndex}.numTrials); return; end;
+            
+            corrTP = subj.testPoints{testPointIndex}.corrTestPoint(); % calc correlation across testPoint
+        end
+        function corrTr = correlationAcrossTestPoints(subj,testPointIndex)
+            %%%%%%%%% WORKING ON THIS FUNCTION NOW!
+        end
     end
     methods (Access = private)
         function valid = checkValidTestPointIndex(subj,testPointIndex) % selected testPointmust be in database

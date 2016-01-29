@@ -175,6 +175,19 @@ classdef testPoint_tbiNMBL < handle
             % create legend
             tp.plotTestPointLegend(trialIndex);
         end
+        function s = corrTestPoint(tp) % correlation coefficient between all trials in a testpoint
+            if (tp.numTrials == 0); disp('Need at least one trial in this testPoint.'); return; end;            
+            % look at each muscle across testpoint and find correlation
+
+            s = cell(12,2); %  12 muscles x (data, name)
+            for muscle = 1:12
+                for i = 1:tp.numTrials
+                    M(:,i) = tp.trials{i}.emgData(:,muscle); % assemble observation matrix for correlation
+                end
+                s{muscle,1} = corrcoef(M(:,:)); % correlation of a muscle to itself across testPoints
+                s{muscle,2} = tp.trials{1}.emgLabel{muscle}; % muscle name
+            end
+        end
     end
     methods (Access = {?tbiNMBL.subject_tbiNMBL})
         function plotTestPointEmg(tp,trialIndex, checkEmgLabels)
