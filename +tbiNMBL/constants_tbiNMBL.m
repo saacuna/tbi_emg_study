@@ -10,7 +10,9 @@ classdef constants_tbiNMBL
       % plotting parameters
       emgPlotYAxisLimits = [0, 3]; 
       emgPlotXAxisLabel = '' % 'Percent of Gait Cycle';
-      emgPlotColors = {'b' 'r' 'g' 'c' 'k'}; % the order of colors plotted
+      emgPlotColors = {rgb('Blue') rgb('Red') rgb('ForestGreen') rgb('Gray') rgb('Tomato')}; % the order of colors plotted, using rgb (Author: Kristján Jónasson, Dept. of Computer Science, University of Iceland (jonasson@hi.is). June 2009.
       legendPosition = [.4 .001 .2 .1] ; % normalized to figure : left, bottom, width, height
+      transparentErrorBars = [1]; % 1 = transparent, 0 = opaque
+      showErrorBars = [1]; % 1 = show them, 0 = hide
    end
 end

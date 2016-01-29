@@ -126,6 +126,7 @@ classdef trial_tbiNMBL < handle
             % this wrapper function plots the emg gait cycle data for the
             % calculated trial. cool, eh?
             %   6 muscles (mean +/- std)
+
             figure('Name','Trial EMG');
             tr.plotTrialEmg(1);
         end
@@ -135,14 +136,16 @@ classdef trial_tbiNMBL < handle
         end
     end
     
-    methods (Access = {?tbiNMBL.testPoint_tbiNMBL})
+    methods (Access = {?tbiNMBL.testPoint_tbiNMBL, ?tbiNMBL.subject_tbiNMBL})
         % plotting functions
         function plotTrialEmg(tr,plotColorIndex)
-            for j=1:6 % RIGHT LEG
+            for j=1:6 % RIGHT LEG 
                 subplot(6,2,2*j); % plots on right half of figure
                 hold on
-                shadedErrorBar([0:100]',tr.emgData(:,j),tr.emgStd(:,j),tbiNMBL.constants_tbiNMBL.emgPlotColors{plotColorIndex},1);
-                plot([0:100]',tr.emgData(:,j),tbiNMBL.constants_tbiNMBL.emgPlotColors{plotColorIndex});
+                if tbiNMBL.constants_tbiNMBL.showErrorBars
+                shadedErrorBar([0:100]',tr.emgData(:,j),tr.emgStd(:,j),{'color',tbiNMBL.constants_tbiNMBL.emgPlotColors{plotColorIndex}},tbiNMBL.constants_tbiNMBL.transparentErrorBars);
+                end
+                plot([0:100]',tr.emgData(:,j),'color',tbiNMBL.constants_tbiNMBL.emgPlotColors{plotColorIndex});
                 hold off
                 title(tr.emgLabel(j));
                 ylim(tbiNMBL.constants_tbiNMBL.emgPlotYAxisLimits);
@@ -151,8 +154,10 @@ classdef trial_tbiNMBL < handle
             for j=1:6 % LEFT LEG
                 subplot(6,2,2*j-1); % plots on left half of figure
                 hold on
-                shadedErrorBar([0:100]',tr.emgData(:,6+j),tr.emgStd(:,6+j),tbiNMBL.constants_tbiNMBL.emgPlotColors{plotColorIndex},1);
-                plot([0:100]',tr.emgData(:,6+j),tbiNMBL.constants_tbiNMBL.emgPlotColors{plotColorIndex});
+                if tbiNMBL.constants_tbiNMBL.showErrorBars
+                shadedErrorBar([0:100]',tr.emgData(:,6+j),tr.emgStd(:,6+j),{'color',tbiNMBL.constants_tbiNMBL.emgPlotColors{plotColorIndex}},tbiNMBL.constants_tbiNMBL.transparentErrorBars);
+                end
+                plot([0:100]',tr.emgData(:,6+j),'color',tbiNMBL.constants_tbiNMBL.emgPlotColors{plotColorIndex});
                 hold off
                 title(tr.emgLabel(6+j));
                 ylim(tbiNMBL.constants_tbiNMBL.emgPlotYAxisLimits);
@@ -303,6 +308,7 @@ classdef trial_tbiNMBL < handle
             
             [hsr, hsrp]=findpeaks(amagf(:,1),'MinPeakHeight',2.,'MinPeakDistance',100); % [heel strike right ankle, time of strike]
             [hsl, hslp]=findpeaks(amagf(:,2),'MinPeakHeight',2.,'MinPeakDistance',100); % [heel strike left ankle, time of strike]
+
             
             if plots
                 % Plots the peaks as x's and o's
