@@ -184,7 +184,7 @@ classdef testPoint_tbiNMBL < handle
                 for i = 1:tp.numTrials
                     M(:,i) = tp.trials{i}.emgData(:,muscle); % assemble observation matrix for correlation
                 end
-                s{muscle,1} = corrcoef(M(:,:)); % correlation of a muscle to itself across testPoints
+                s{muscle,1} = corrcoef(M(:,:)); % correlation of a muscle to itself across trials within a testpoint
                 s{muscle,2} = tp.trials{1}.emgLabel{muscle}; % muscle name
             end
         end

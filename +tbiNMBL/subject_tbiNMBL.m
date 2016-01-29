@@ -199,9 +199,9 @@ classdef subject_tbiNMBL < handle
             suptitle(['Subject ', subj.ID, ' : Test Point ' num2str(testPointIndex)]); % create supertitle
             subj.plotSubjectLegend(testPointIndex); % create legend
         end
-        function corrTP = correlationOfTestPoint(subj,testPointIndex)
-            % Across conditions in a single testPoint of same subject (preferred v baseline v overground)
-            %shows consistency of gait in subject for that point in time
+        function corrOfTP = correlationOfTestPoint(subj,testPointIndex)
+            % Outputs correlation of muscle across trials in a single testPoint of same subject (preferred v baseline v overground)
+            % Shows CONSISTENCY of gait in subject for that point in time
             if nargin == 1 
                 disp('No testPointIndex number specified, so this wont correlate anything.');
                 return
@@ -212,10 +212,35 @@ classdef subject_tbiNMBL < handle
             % testPoint must have existing trials
             if ~subj.checkValidTrialsInTestPoint(testPointIndex,subj.testPoints{testPointIndex}.numTrials); return; end;
             
-            corrTP = subj.testPoints{testPointIndex}.corrTestPoint(); % calc correlation across testPoint
+            corrOfTP = subj.testPoints{testPointIndex}.corrTestPoint(); % calc correlation across testPoint
         end
-        function corrTr = correlationAcrossTestPoints(subj,testPointIndex)
-            %%%%%%%%% WORKING ON THIS FUNCTION NOW!
+        function corrAcTP = correlationAcrossTestPoints(subj,trialIndex)
+            % Outputs correlation of muscle across same trialType across testPoints of same subject
+            % Shows IMPROVEMENT of gait in subject overtime
+            if nargin == 1
+                trialIndex = 1; % if not specified, assume the first trialIndex in each testPoint
+                disp(['Assume looking at first trial in test points.']);
+            end
+            
+            % look at all testpoints
+            testPointIndex = 1:subj.numTestPoints;
+            disp(['Look at all ' num2str(subj.numTestPoints) ' testPoints for subject ' subj.ID]);
+            
+            % selected trial must be in a selected testpoint
+            for i = 1:length(testPointIndex);
+                if ~subj.checkValidTrialsInTestPoint(testPointIndex(i), trialIndex); return; end;
+            end
+            
+            corrAcTP = cell(12,2); %  12 muscles x (data, name)
+            for muscle = 1:12
+                for i = 1:length(testPointIndex);
+                    M(:,i) = subj.testPoints{testPointIndex(i)}.trials{trialIndex}.emgData(:,muscle); % assemble observation matrix for correlation
+                end
+                corrAcTP{muscle,1} = corrcoef(M(:,:)); % correlation of a muscle to itself across testPoints
+                corrAcTP{muscle,2} = subj.testPoints{1}.trials{trialIndex}.emgLabel{muscle}; % muscle name
+            end
+        end
+        function 
         end
     end
     methods (Access = private)
