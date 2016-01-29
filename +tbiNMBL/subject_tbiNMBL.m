@@ -240,13 +240,41 @@ classdef subject_tbiNMBL < handle
                 corrAcTP{muscle,2} = subj.testPoints{1}.trials{trialIndex}.emgLabel{muscle}; % muscle name
             end
         end
-        function 
+        function corrSubj = correlationBetweenSubjects(subj1,subj2)
+            % correlation of two subjects
+            fprintf('\n\t%s%s%s%s%s\n','Compare ', subj1.ID, ' with ', subj2.ID,' :' )
+            fprintf('\t%s\n','Assume EMG labels are consistent between subjects');
+            % look at first testpoints
+            testPointIndex = 1; 
+            fprintf('\t%s%d%s%s%s\n','Look at testPoint ', testPointIndex ,' for subject ' ,subj1.ID ,'.')
+            if ~subj1.checkValidTestPointIndex(testPointIndex); return; end; % selected testPoint number must be in database
+            fprintf('\t%s%d%s%s%s\n','Look at testPoint ', testPointIndex ,' for subject ' ,subj2.ID ,'.')
+            if ~subj2.checkValidTestPointIndex(testPointIndex); return; end; % selected testPoint number must be in database
+            
+            % assume the first trialIndex in each testPoint
+            trialIndex = 1; 
+            fprintf('\t%s%d%s\n','Assume looking at trial ', trialIndex, ' in both test points.')
+            if ~subj1.checkValidTrialsInTestPoint(testPointIndex,trialIndex); disp(['--> trialIndex is not valid for subject ' subj1.ID]); return; end;% testPoint must have existing trials
+            if ~subj2.checkValidTrialsInTestPoint(testPointIndex,trialIndex); disp(['--> trialIndex is not valid for subject ' subj2.ID]); return; end;% testPoint must have existing trials
+            
+            corrSubj = cell(12,2); %  12 muscles x (data, name)
+            for muscle = 1:12    
+                M(:,1) = subj1.testPoints{testPointIndex}.trials{trialIndex}.emgData(:,muscle); % assemble observation matrix for correlation
+                M(:,2) = subj2.testPoints{testPointIndex}.trials{trialIndex}.emgData(:,muscle); % assemble observation matrix for correlation
+                
+                corrM = corrcoef(M(:,:)); % correlation matrix of a muscle between subjects, for 1 testpoint, 1 trial in that testpoint
+                corrSubj{muscle,1} = corrM(1,2); % pull out correlation coeff between subj1 and subj2
+                corrSubj{muscle,2} = subj1.testPoints{testPointIndex}.trials{trialIndex}.emgLabel{muscle}; % muscle name
+            end
+            
+            % list the calculated correlations
+            subj1.listCorrSubj(corrSubj);
         end
     end
     methods (Access = private)
         function valid = checkValidTestPointIndex(subj,testPointIndex) % selected testPointmust be in database
             if (subj.numTestPoints < max(testPointIndex))
-                disp(['testPointIndex is invalid. There are only ' num2str(subj.numTestPoints) ' trials for subject ' subj.ID '.']);
+                disp(['testPointIndex is invalid. There are only ' num2str(subj.numTestPoints) ' testPoints for subject ' subj.ID '.']);
                 valid = 0;
             elseif isempty(testPointIndex)
                 disp(['There are no testpoints for subject ' subj.ID '.']);
@@ -263,7 +291,7 @@ classdef subject_tbiNMBL < handle
                 if subj.testPoints{testPointIndex}.checkValidTrialIndex(trialIndex)% trialindex is in testpoint
                     valid = 1;
                 else %trialindex is not in testpoint
-                    disp(['Thus, No valid trials in testPointIndex ' num2str(testPointIndex)']);
+                    disp(['--> No valid trials in testPointIndex ' num2str(testPointIndex)']);
                     valid = 0;
                 end
             end
@@ -282,6 +310,15 @@ classdef subject_tbiNMBL < handle
         function listTestPointsHeader(subj) % list headers
             fprintf('\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n','Index','TestPt','nTrials', 'PrefSpd', 'BaseSpd', 'Notes', 'Admin.','Date'); % list headers
             fprintf('\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' ,'-------','-------','-------','-------','-------','-------','-------','-------');
+        end
+        function listCorrSubj(subj,corrSubj)
+            % corrSubj will always be 12x2 cell
+            fprintf('\n\t%s\t%s\n\t%s\t%s\n','CorCoef','Muscle','-------','-------'); % list headers
+        
+            for muscle = 1:12 % list correlation coeff
+            fprintf('\t%1.4f\t%s\n',corrSubj{muscle,1},corrSubj{muscle,2});
+            end
+            
         end
         function plotSubjectLegend(subj,testPointIndex)
             % create workaround custom legend, not the cleanest, but easier than
