@@ -158,7 +158,6 @@ classdef testPoint_tbiNMBL < handle
             % checkEmgLabels = 0 (default) or 1, whether to print out the emg labels
             if nargin == 1 % if no trials specified, plot them all, dont view labels
                 trialIndex = 1:tp.numTrials;
-                if ~tp.checkValidTrialIndex(trialIndex); return; end; % selected trial number must be in database
                 checkEmgLabels = 0;
             elseif nargin == 2 % if checkEmgLabels not specified, dont view labels
                 checkEmgLabels = 0;
@@ -187,6 +186,33 @@ classdef testPoint_tbiNMBL < handle
                 s{muscle,1} = corrcoef(M(:,:)); % correlation of a muscle to itself across trials within a testpoint
                 s{muscle,2} = tp.trials{1}.emgLabel{muscle}; % muscle name
             end
+        end
+        function fixSensor1Data(tp,trialIndex) % rearrange emg data for consistent order;
+            % for some of the trials, sensor 1 was used in place of sensor
+            % 8. This function rearranges the data from sensor 1 into the
+            % slot for sensor 8 data. It just makes everything consistent.
+            % Check out the order of the trials with displayEmgTrials method.
+            %
+            % inputs:
+            % none =  this rearranges the data for ALL TRIALS in the given
+            %         testPoint. If you add another trial in later, and need to fix just that one, DONT use this
+            %         version of the method
+            % trialIndex = rearranges the data for only the specificed
+            %          trials in the given testpoint 
+            %          e.g. trialIndex = [2 3]
+            if nargin == 1 % if no trials specified, rearrange them all
+                trialIndex = 1:tp.numTrials;
+            end
+            if ~tp.checkValidTrialIndex(trialIndex); return; end; % selected trial number must be in database
+            
+            disp(['Fixing sensor 1 data for Test Point' num2str(tp.TP) '.']);
+            for i = trialIndex
+                disp(['Trial Index #' num2str(i)]);
+                tp.trials{i}.fixSensor1Data;
+            end
+            
+            
+            
         end
     end
     methods (Access = {?tbiNMBL.subject_tbiNMBL})

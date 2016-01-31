@@ -167,6 +167,38 @@ classdef trial_tbiNMBL < handle
         function checkEmgLabels(tr)
             disp(tr.emgLabel');  % these labels should be same for each trial examined
         end
+        function fixSensor1Data(tr) % rearrange emg data for consistent order
+            % for some of the trials, sensor 1 was used in place of sensor
+            % 8. This function rearranges the data from sensor 1 into the
+            % slot for sensor 8 data. It just makes everything consistent.
+            % Check out the order of the trials with viewEmgLabels method.
+            
+            disp('Original order of emg data:')
+            tr.checkEmgLabels;
+            
+            % put right leg data into new cell array
+            newEmgData(:,1:6) = tr.emgData(:,2:7);
+            newEmgStd(:,1:6) = tr.emgStd(:,2:7);
+            newEmgLabel(:,1:6) = tr.emgLabel(:,2:7);
+            
+            % put sensor 1 data into slot 7
+            newEmgData(:,7) = tr.emgData(:,1);
+            newEmgStd(:,7) = tr.emgStd(:,1);
+            newEmgLabel(:,7) = tr.emgLabel(:,1);
+            
+            % put remaining left leg data into rest of array
+            newEmgData(:,8:12) = tr.emgData(:,8:12);
+            newEmgStd(:,8:12) = tr.emgStd(:,8:12);
+            newEmgLabel(:,8:12) = tr.emgLabel(:,8:12);
+            
+            % put temporarily rearranged data into permanent dataslot
+            tr.emgData = newEmgData;
+            tr.emgStd = newEmgStd;
+            tr.emgLabel = newEmgLabel;
+            
+            disp('Overwritten with new order of emg data:')
+            tr.checkEmgLabels;
+        end
     end
     methods (Access = private)
         % main functions used in calculating emg data

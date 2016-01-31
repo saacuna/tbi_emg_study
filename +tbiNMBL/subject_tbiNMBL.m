@@ -267,13 +267,37 @@ classdef subject_tbiNMBL < handle
             for muscle = 1:12    
                 M(:,1) = subj1.testPoints{testPointIndex}.trials{trialIndex}.emgData(:,muscle); % assemble observation matrix for correlation
                 M(:,2) = subj2.testPoints{testPointIndex}.trials{trialIndex}.emgData(:,muscle); % assemble observation matrix for correlation
-                
+                  
                 corrSubj{muscle,1} = corrcoef(M(:,:)); % correlation matrix of a muscle between subjects, for 1 testpoint, 1 trial in that testpoint
                 corrSubj{muscle,2} = subj1.testPoints{testPointIndex}.trials{trialIndex}.emgLabel{muscle}; % muscle name
             end
             
             % list the calculated correlations
             subj1.listCorrelations(corrSubj);
+        end
+        function fixSensor1Data(subj,testPointIndex)% rearrange emg data for consistent order;
+            % for some of the trials, sensor 1 was used in place of sensor
+            % 8. This function rearranges the data from sensor 1 into the
+            % slot for sensor 8 data. It just makes everything consistent.
+            % Check out the order of the trials with displayEmgTrials method.
+            %
+            % inputs:
+            % testPointIndex = required. Specify which single testPoint
+            %              shuold have its data order fixed. all of its
+            %              trials data will be affected.
+            %
+            % note: if you want to change specific trials, use the
+            %   fixSensor1Data of the testPoint_tbiNMBL class using format:
+            %   subj.testPoints{testPointIndex}.fixSensor1Data(trialIndex)
+            
+            if nargin == 1
+                disp('No testPointIndex number specified, so this wont do anything.');
+                return
+            end
+            if length(testPointIndex) > 1; error('can only fix one testPoint with method subject_tbiNMBL.fixSensor1Data'); end;
+            if ~subj.checkValidTestPointIndex(testPointIndex); return; end; % selected testPoint number must be in database
+            
+            subj.testPoints{testPointIndex}.fixSensor1Data; % fix the testPoint data 
         end
     end
     methods (Access = private)
