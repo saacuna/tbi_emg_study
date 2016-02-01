@@ -144,7 +144,8 @@ classdef subject_tbiNMBL < handle
             if ~subj.numTestPoints % if no testpoint data stored yet
                 fprintf('\n\t%s\n','No testPoint data for this subject has been stored.');
             else % compile output display
-                fprintf('\n\t%s%s%s\n\n','### All Data for Subject ',subj.ID,' ###');
+                fprintf('\n\t%s%s%s\n','### All Data for Subject ',subj.ID,' ###');
+                subj.listSubjectMetaData
                 fprintf('\n\t%s%s%s\n','TESTPOINT INDEX, Subject ',subj.ID,':');
                 
                 subj.listTestPointsHeader % list header of testpoint data
@@ -197,7 +198,8 @@ classdef subject_tbiNMBL < handle
                 if checkEmgLabels; fprintf('\n%s%s%s%s%d%s', 'Subject ', subj.ID, ' : ', 'TestPoint ',subj.testPoints{testPointIndex(i)}.TP,' : '); end;
                 subj.testPoints{testPointIndex(i)}.displayEmgTrials(checkEmgLabels, trialIndex(i)); 
             end
-            suptitle(['Subject ', subj.ID, ' : Test Point ' num2str(testPointIndex)]); % create supertitle
+            suptitle_name = strcat('Subject',{' '}, subj.ID,'  :  Test Point',{'  '},num2str(testPointIndex),'  : ',{'  '}, strrep(tbiNMBL.constants_tbiNMBL.trialType(trialIndex(1)),'_',' '));
+            suptitle(suptitle_name); % create supertitle
             subj.plotSubjectLegend(testPointIndex); % create legend
         end
         function corrOfTP = correlationOfTestPoint(subj,testPointIndex)
@@ -215,10 +217,7 @@ classdef subject_tbiNMBL < handle
             
             corrOfTP = subj.testPoints{testPointIndex}.corrTestPoint(); % calc correlation across testPoint
             
-            % list the calculated correlations, if corrOfTP is 12x2 
-            if isequal(size(corrOfTP{1}),[2 2])
-                subj.listCorrelations(corrOfTP);
-            end
+            subj.listCorrelations(corrOfTP); % display calculated correlations
         end
         function corrAcTP = correlationAcrossTestPoints(subj,trialIndex)
             % Outputs correlation of muscle across same trialType across testPoints of same subject
@@ -245,6 +244,9 @@ classdef subject_tbiNMBL < handle
                 corrAcTP{muscle,1} = corrcoef(M(:,:)); % correlation of a muscle to itself across testPoints
                 corrAcTP{muscle,2} = subj.testPoints{1}.trials{trialIndex}.emgLabel{muscle}; % muscle name
             end
+            
+            subj.listCorrelations(corrAcTP); % display calculated correlations
+            
         end
         function corrSubj = correlationBetweenSubjects(subj1,subj2)
             % correlation of two subjects
@@ -272,8 +274,7 @@ classdef subject_tbiNMBL < handle
                 corrSubj{muscle,2} = subj1.testPoints{testPointIndex}.trials{trialIndex}.emgLabel{muscle}; % muscle name
             end
             
-            % list the calculated correlations
-            subj1.listCorrelations(corrSubj);
+            subj1.listCorrelations(corrSubj); % list the calculated correlations
         end
         function fixSensor1Data(subj,testPointIndex)% rearrange emg data for consistent order;
             % for some of the trials, sensor 1 was used in place of sensor
@@ -340,14 +341,46 @@ classdef subject_tbiNMBL < handle
             fprintf('\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n','Index','TestPt','nTrials', 'PrefSpd', 'BaseSpd', 'Notes', 'Admin.','Date'); % list headers
             fprintf('\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' ,'-------','-------','-------','-------','-------','-------','-------','-------');
         end
+        function listSubjectMetaData(subj)
+            fprintf('\t%s\t%s\t%s\t%s\t%s\n','SubjID','Init.','TestPts','StimLvl','Status'); % list headers
+            fprintf('\t%s\t%s\t%s\t%s\t%s\n' ,'-------','-------','-------','-------','-------');
+            vals = {...
+                subj.ID,...
+                subj.initials,...
+                subj.numTestPoints,...
+                subj.stimLvl,...
+                subj.status};
+            fprintf('\t%s\t%s\t%d\t%s\t%s\n',vals{:});
+        end
         function listCorrelations(subj,corrCoefs)
-            % corrSubj will always be 12x2 cell
-            fprintf('\n\t%s\t%s\n\t%s\t%s\n','CorCoef','Muscle','-------','-------'); % list headers
-        
-            for muscle = 1:12 % list correlation coeff
-            fprintf('\t%1.4f\t%s\n',corrCoefs{muscle,1}(1,2),corrCoefs{muscle,2});
+            % display correlation coefficients to the screen
+            % corrCoefs will always be 12x2 cell. first column is the
+            % correlation matrices, 2nd column is the muscle name
+            
+            if isequal(size(corrCoefs{1}),[2 2]) % 2x2 correlation matrix
+                fprintf('\n\t%s\t%s\n\t%s\t%s\n','CorCoef','Muscle','-------','-------'); % list headers
+                for muscle = 1:12 % list correlation coeff
+                    fprintf('\t%1.2f\t%s\n',corrCoefs{muscle,1}(1,2),corrCoefs{muscle,2});
+                end
+                return
             end
             
+            tpTitles = {'tp01','tp02','tp06','tp10'};
+            fprintf('\n\t%s%s%s\n','Correlation Matrices, subject ',subj.ID,':'); % list main header
+            for muscle = 1:12 % matrix for each muscle
+                fprintf('\n\t%s%s\n','Muscle: ',corrCoefs{muscle,2}); % print muscle header
+                if isequal(size(corrCoefs{1}),[3 3]) % 3x3 correlation matrix         
+                    fprintf('\t\t%s\t%s\n',tpTitles{2},tpTitles{3})
+                    fprintf('\t%s\t%1.2f\t%1.2f\n',tpTitles{1},corrCoefs{muscle,1}(1,2),corrCoefs{muscle,1}(1,3));
+                    fprintf('\t%s\t%s\t%1.2f\n',tpTitles{2},'-',corrCoefs{muscle,1}(2,3));
+                end
+                if isequal(size(corrCoefs{1}),[4 4]) % 4x4 correlation matrix
+                    fprintf('\t\t%s\t%s\t%s\n',tpTitles{2},tpTitles{3},tpTitles{4})
+                    fprintf('\t%s\t%1.2f\t%1.2f\t%1.2f\n',tpTitles{1},corrCoefs{muscle,1}(1,2),corrCoefs{muscle,1}(1,3),corrCoefs{muscle,1}(1,4));
+                    fprintf('\t%s\t%s\t%1.2f\t%1.2f\n',tpTitles{2},'-',corrCoefs{muscle,1}(2,3),corrCoefs{muscle,1}(2,4));
+                    fprintf('\t%s\t%s\t%s\t%1.2f\n',tpTitles{3},'-','-',corrCoefs{muscle,1}(3,4));
+                end
+            end            
         end
         function plotSubjectLegend(subj,testPointIndex)
             % create workaround custom legend, not the cleanest, but easier than

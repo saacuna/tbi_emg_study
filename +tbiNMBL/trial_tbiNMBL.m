@@ -86,6 +86,9 @@ classdef trial_tbiNMBL < handle
                     error('infile : specified filename not found in this directory.');
                 end
             end
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % specify trial type
+            tr.setTrialType(); 
             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % generate emg, ax, ay, az data
@@ -101,7 +104,7 @@ classdef trial_tbiNMBL < handle
             % calculate emg data over the average gate cycle
             calculationPlots = 0; % set to true if you want to see plots of intermediate calculations
             [emgcyc, emgcycstd, emgcyclabel, emgcycfreq] = tr.calcEmgCycle(emg, ax, ay, az, calculationPlots); 
-            disp('Successfully calculated EMG data for average gait cycle. Can export to saved file using exportEmgData() function')
+            disp('Successfully calculated EMG data for average gait cycle.')
             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % construct emg data
@@ -109,7 +112,7 @@ classdef trial_tbiNMBL < handle
             tr.emgStd = emgcycstd;
             tr.emgLabel = emgcyclabel;
             tr.emgFreq = emgcycfreq;
-            tr.setTrialType(); % specify trial type
+            
         end
         function setTrialType(tr)
             trialTypeChoices = tbiNMBL.constants_tbiNMBL.trialType;
@@ -357,11 +360,14 @@ classdef trial_tbiNMBL < handle
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Filter the EMG data
             % Use 3 filters to remove non-EMG frequency range noise, drift, and
-            % then get nice activation envelopes - numbers are set for 2000 Hz
-            % collection
-            [b,a]=butter(4,0.35,'low'); %Used to remove high-frequency noise above 350Hz
-            [bb,aa]=butter(4,0.001,'high'); %Used to remove low-frequency drift below 1Hz
-            [bbb,aaa]=butter(4,0.01,'low'); %Used to filter to 10Hz to get envelope
+            % then get nice activation envelopes 
+            % e.g. for a 2000 Hz collection,
+            %   350Hz = 350/(freq/2) = 350/(1000) = 0.35
+            %     1Hz =   1/(freq/2) =   1/(1000) = 0.001
+            %    10Hz =  10/(freq/2) =  10/(1000) = 0.01
+            [b,a]=butter(4,350/(emg(1).freq/2),'low'); %Used to remove high-frequency noise above 350Hz
+            [bb,aa]=butter(4,1/(emg(1).freq/2),'high'); %Used to remove low-frequency drift below 1Hz
+            [bbb,aaa]=butter(4,10/(emg(1).freq/2),'low'); %Used to filter to 10Hz to get envelope
             emgdatar = zeros(size(emg(1).data));% preallocate for speed
             emgdatalabel = cell(1,12);% preallocate for speed
             for ii=1:12
