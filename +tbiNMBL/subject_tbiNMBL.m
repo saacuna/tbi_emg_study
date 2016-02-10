@@ -198,7 +198,7 @@ classdef subject_tbiNMBL < handle
                 if checkEmgLabels; fprintf('\n%s%s%s%s%d%s', 'Subject ', subj.ID, ' : ', 'TestPoint ',subj.testPoints{testPointIndex(i)}.TP,' : '); end;
                 subj.testPoints{testPointIndex(i)}.displayEmgTrials(checkEmgLabels, trialIndex(i)); 
             end
-            suptitle_name = strcat('Subject',{' '}, subj.ID,'  :  Test Point',{'  '},num2str(testPointIndex),'  : ',{'  '}, strrep(tbiNMBL.constants_tbiNMBL.trialType(trialIndex(1)),'_',' '));
+            suptitle_name = strcat('Subject',{' '}, subj.ID,'  :  Test Point',{'  '},num2str(cell2mat(tbiNMBL.constants_tbiNMBL.TP(testPointIndex))),'  : ',{'  '}, strrep(tbiNMBL.constants_tbiNMBL.trialType(trialIndex(1)),'_',' '));
             suptitle(suptitle_name); % create supertitle
             subj.plotSubjectLegend(testPointIndex); % create legend
         end
@@ -390,7 +390,7 @@ classdef subject_tbiNMBL < handle
                 handle(i) = plot(NaN,NaN,'color',tbiNMBL.constants_tbiNMBL.emgPlotColors{i});
             end
             hold off
-            testPoint_strings = strcat('TestPt ',strread(num2str(testPointIndex),'%s'));
+            testPoint_strings = strcat('TestPt ',num2str(cell2mat(tbiNMBL.constants_tbiNMBL.TP(testPointIndex)')));
             set(handle(:),'linewidth',5);
             h = legend(handle(:),testPoint_strings);
             set(h,'Position',tbiNMBL.constants_tbiNMBL.legendPosition);

@@ -92,7 +92,8 @@ classdef trial_tbiNMBL < handle
             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % generate emg, ax, ay, az data
-            disp('loading and converting raw emg data into matlab friendly format. This might take a while...')
+            disp('loading and converting raw emg data into matlab friendly format.')
+            disp('This might take a while...')
             try
                 [emg, ax, ay, az] = tr.load_emgworks(infile,inpath); % outputs = emg structure, acceleration in x,y,z
             catch
@@ -103,6 +104,19 @@ classdef trial_tbiNMBL < handle
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % calculate emg data over the average gate cycle
             calculationPlots = 0; % set to true if you want to see plots of intermediate calculations
+            
+            % rearrange data if sensor 1 is in place of sensor 8
+            if (strcmp(emg(1).label,'L TIBIALIS ANTERIOR')) 
+                
+                temp = emg(1); % l tibialis anterior
+                for i = 1:6 % rearrange the right leg
+                    emg(i) = emg(i+1);
+                end
+                emg(7) = temp; 
+                               
+                disp('Rearranged Data because sensor 1 is in place of sensor 8.')
+            end
+                       
             [emgcyc, emgcycstd, emgcyclabel, emgcycfreq] = tr.calcEmgCycle(emg, ax, ay, az, calculationPlots); 
             disp('Successfully calculated EMG data for average gait cycle.')
             
@@ -280,10 +294,13 @@ classdef trial_tbiNMBL < handle
             % Now distribute the data
             jemg=[]; jax=[]; jay=[]; jaz=[];
             for i=1:nch
-                if strmatch('EMG',ch(i).type); jemg=[jemg i]; end
-                if strmatch('ACC X',ch(i).type); jax=[jax i]; end
-                if strmatch('ACC Y',ch(i).type); jay=[jay i]; end
-                if strmatch('ACC Z',ch(i).type); jaz=[jaz i]; end
+                if (ch(i).sensor < 14) % emg only for sensors 1-13
+                    if strmatch('EMG',ch(i).type); jemg=[jemg i]; end
+                else % acceleration only for sensors 14-16
+                    if strmatch('ACC X',ch(i).type); jax=[jax i]; end
+                    if strmatch('ACC Y',ch(i).type); jay=[jay i]; end
+                    if strmatch('ACC Z',ch(i).type); jaz=[jaz i]; end
+                end
             end
             file=[inpath infile];
             emg=ch(jemg);
@@ -306,7 +323,7 @@ classdef trial_tbiNMBL < handle
             
             % plots = 0 or 1, depending if you want to see plots accompanying the
             % calculation
-            
+            %
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Finds the peaks of the filtered acceleration data
             
@@ -317,7 +334,7 @@ classdef trial_tbiNMBL < handle
                 axf=filtfilt(bfa,afa,ax(i).data);
                 ayf=filtfilt(bfa,afa,ay(i).data);
                 azf=filtfilt(bfa,afa,az(i).data);
-                amag(:,i)=(ax(i).data.^2+ay(i).data.^2+az(i).data.^2).^0.5; % acceleration magnitudes
+                % amag(:,i)=(ax(i).data.^2+ay(i).data.^2+az(i).data.^2).^0.5; % unflitered acceleration magnitudes
                 amagf(:,i)=(axf.^2+ayf.^2+azf.^2).^0.5;
             end
             
@@ -339,11 +356,9 @@ classdef trial_tbiNMBL < handle
             end
             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            % Uses the magnitudes from filtered acc data and finds the peaks
-            
+            % Uses the magnitudes from filtered acc data and finds the peaks            
             [hsr, hsrp]=findpeaks(amagf(:,1),'MinPeakHeight',2.,'MinPeakDistance',100); % [heel strike right ankle, time of strike]
             [hsl, hslp]=findpeaks(amagf(:,2),'MinPeakHeight',2.,'MinPeakDistance',100); % [heel strike left ankle, time of strike]
-
             
             if plots
                 % Plots the peaks as x's and o's
@@ -395,6 +410,15 @@ classdef trial_tbiNMBL < handle
                 emgc(j)=tr.avgcycle(emgtime,emgdata(:,j),ax(1).time(hsrp),10,50); %right leg muslces
                 emgc(6+j)=tr.avgcycle(emgtime,emgdata(:,6+j),ax(2).time(hslp),10,50); % left leg muscles
             end
+                   
+            
+            %%%%%%%% if I need to switch sensors for left and right leg, do
+            %%%%%%%% it here.
+            % j = 1 ;
+            % emgc(j)=tr.avgcycle(emgtime,emgdata(:,j),ax(2).time(hslp),10,50); %right leg muslces
+            % emgc(6+j)=tr.avgcycle(emgtime,emgdata(:,6+j),ax(1).time(hsrp),10,50); % left leg muscles
+            
+            
             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             %Normalize the EMG data
