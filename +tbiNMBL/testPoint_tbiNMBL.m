@@ -19,7 +19,7 @@ classdef testPoint_tbiNMBL < handle
     %   tp.plotTestPoint() % plots all trials in testpoint
     %   tp.removeTrial(2) % remove the second trial from the testpoint database
     
-    properties (GetAccess = 'public', SetAccess = 'private')
+    properties (GetAccess = 'public', SetAccess = 'public')%SetAccess = 'private')
         TP; % which test point it is, i.e. 1, 2, 6, 10
         dateCollected; % when test point collection was done, e.g. 2015-12-25
         dataCollectedBy; % initials of who collected the testpoint data

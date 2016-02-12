@@ -15,7 +15,7 @@ classdef subject_tbiNMBL < handle
     %      subj1.plotSubject()
     %      subj1.correlationOfTestPoint()
     
-    properties (GetAccess = 'public', SetAccess = 'private')
+    properties (GetAccess = 'public', SetAccess = 'public')%SetAccess = 'private')
         ID; % e.g. TBI-06
         initials; % e.g. SA
         status; % e.g. completed, withdrawn, current
@@ -248,30 +248,35 @@ classdef subject_tbiNMBL < handle
             subj.listCorrelations(corrAcTP); % display calculated correlations
             
         end
-        function corrSubj = correlationBetweenSubjects(subj1,subj2)
+        function corrSubj = correlationBetweenSubjects(subj1,subj2,testPointIndex1,testPointIndex2)
+            if nargin == 2
+                % look at first testpoints, if not specified
+                testPointIndex1 = 1;
+                testPointIndex2 = 1;
+            end
             % correlation of two subjects
             fprintf('\n\t%s%s%s%s%s\n','Compare ', subj1.ID, ' with ', subj2.ID,' :' )
             fprintf('\t%s\n','Assume EMG labels are consistent between subjects');
-            % look at first testpoints
-            testPointIndex = 1; 
-            fprintf('\t%s%d%s%s%s\n','Look at testPoint ', testPointIndex ,' for subject ' ,subj1.ID ,'.')
-            if ~subj1.checkValidTestPointIndex(testPointIndex); return; end; % selected testPoint number must be in database
-            fprintf('\t%s%d%s%s%s\n','Look at testPoint ', testPointIndex ,' for subject ' ,subj2.ID ,'.')
-            if ~subj2.checkValidTestPointIndex(testPointIndex); return; end; % selected testPoint number must be in database
+            
+            
+            fprintf('\t%s%d%s%s%s\n','Look at testPoint ', testPointIndex1 ,' for subject ' ,subj1.ID ,'.')
+            if ~subj1.checkValidTestPointIndex(testPointIndex1); return; end; % selected testPoint number must be in database
+            fprintf('\t%s%d%s%s%s\n','Look at testPoint ', testPointIndex2 ,' for subject ' ,subj2.ID ,'.')
+            if ~subj2.checkValidTestPointIndex(testPointIndex2); return; end; % selected testPoint number must be in database
             
             % assume the first trialIndex in each testPoint
             trialIndex = 1; 
             fprintf('\t%s%d%s\n','Assume looking at trial ', trialIndex, ' in both test points.')
-            if ~subj1.checkValidTrialsInTestPoint(testPointIndex,trialIndex); disp(['--> trialIndex is not valid for subject ' subj1.ID]); return; end;% testPoint must have existing trials
-            if ~subj2.checkValidTrialsInTestPoint(testPointIndex,trialIndex); disp(['--> trialIndex is not valid for subject ' subj2.ID]); return; end;% testPoint must have existing trials
+            if ~subj1.checkValidTrialsInTestPoint(testPointIndex1,trialIndex); disp(['--> trialIndex is not valid for subject ' subj1.ID]); return; end;% testPoint must have existing trials
+            if ~subj2.checkValidTrialsInTestPoint(testPointIndex2,trialIndex); disp(['--> trialIndex is not valid for subject ' subj2.ID]); return; end;% testPoint must have existing trials
             
             corrSubj = cell(12,2); %  12 muscles x (data, name)
             for muscle = 1:12    
-                M(:,1) = subj1.testPoints{testPointIndex}.trials{trialIndex}.emgData(:,muscle); % assemble observation matrix for correlation
-                M(:,2) = subj2.testPoints{testPointIndex}.trials{trialIndex}.emgData(:,muscle); % assemble observation matrix for correlation
+                M(:,1) = subj1.testPoints{testPointIndex1}.trials{trialIndex}.emgData(:,muscle); % assemble observation matrix for correlation
+                M(:,2) = subj2.testPoints{testPointIndex2}.trials{trialIndex}.emgData(:,muscle); % assemble observation matrix for correlation
                   
                 corrSubj{muscle,1} = corrcoef(M(:,:)); % correlation matrix of a muscle between subjects, for 1 testpoint, 1 trial in that testpoint
-                corrSubj{muscle,2} = subj1.testPoints{testPointIndex}.trials{trialIndex}.emgLabel{muscle}; % muscle name
+                corrSubj{muscle,2} = subj1.testPoints{testPointIndex1}.trials{trialIndex}.emgLabel{muscle}; % muscle name
             end
             
             subj1.listCorrelations(corrSubj); % list the calculated correlations

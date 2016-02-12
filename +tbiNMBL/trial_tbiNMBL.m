@@ -20,7 +20,7 @@ classdef trial_tbiNMBL < handle
     %       tr1.viewEmgLabels() % look at list of EMG labels from the collection
     %       save('tr1.mat','emg1') % save raw and calculated data, so dont have to calculate again
 
-    properties (GetAccess = 'public', SetAccess = 'private')
+    properties (GetAccess = 'public', SetAccess = 'public')%SetAccess = 'private')
         trialType; % e.g. check muscles, treadmill_preferredSpeed, etc. see constants_tbiNMBL
         emgData; % normalized emg data over the average gait cycle
         emgStd; % standard deviationnormalized emg data over the average gait cycle
@@ -153,7 +153,7 @@ classdef trial_tbiNMBL < handle
         end
     end
     
-    methods (Access = {?tbiNMBL.testPoint_tbiNMBL, ?tbiNMBL.subject_tbiNMBL})
+    methods (Access = {? tbiNMBL.tbiNMBL, ?tbiNMBL.testPoint_tbiNMBL, ?tbiNMBL.subject_tbiNMBL})
         % plotting functions
         function plotTrialEmg(tr,plotColorIndex)
             for j=1:6 % RIGHT LEG 
@@ -414,7 +414,7 @@ classdef trial_tbiNMBL < handle
             
             %%%%%%%% if I need to switch sensors for left and right leg, do
             %%%%%%%% it here.
-            % j = 1 ;
+            % j = 4 ;
             % emgc(j)=tr.avgcycle(emgtime,emgdata(:,j),ax(2).time(hslp),10,50); %right leg muslces
             % emgc(6+j)=tr.avgcycle(emgtime,emgdata(:,6+j),ax(1).time(hsrp),10,50); % left leg muscles
             
