@@ -3,11 +3,15 @@
 %% create abstract plots
 
 % abstract = tbiNMBL.tbiNMBL()
-% abstract.addSubject(hy_all)
+% abstract.setHealthySubject(hy_all)
+% abstract.list()
 %  abstract.addSubject(tbi07)
 % abstract.correlateSubjects(1,2,1,2);
 
 abstract.compareHealthyPlots(1)
+DGI = [13 23; 10 18]
+abstract.plotDGIvsCorr(DGI)
+
 %%
 close all
 hy_all.plotSubject([1 2 3 4  ],[ 1 1 1 1])
