@@ -15,10 +15,7 @@ classdef tbiNMBL < handle
         numSubjects; % how many subjects have been stored in database
     end
     
-    methods (Access = public)
-        % if using separate file, declare function signature
-        % e.g. output = myFunc(obj,arg1,arg2)
-        
+    methods (Access = public)       
         function obj = tbiNMBL()% constructor function
             obj.subjects = cell(0); %setup database of subjects
             obj.healthySubject = cell(0); %setup healthy subject
@@ -124,6 +121,7 @@ classdef tbiNMBL < handle
             [baselineCorr,twoWeekCorr, labels] = obj.correlateHealthy;
              
              figure('Name','DGI vs Correlation')
+             set(gcf,'color','w');
              for subj = 1:obj.numSubjects
                  for j = 1:6 % right leg
                      subplot(6,2,2*j);
@@ -169,6 +167,90 @@ classdef tbiNMBL < handle
             
              
         end
+        function [rBASELINE, rTWOWEEKS] = plotDGIvsCorr_muscle(obj,muscleNumber,DGI,compareValuesBASELINE,compareValuesTWOWEEKS)
+            % DGI must be matrix, eg. [subj1_dgi_baseline subj1_dgi_twoWeeks; subj2_dgi_baseline subj2_dgi_twoWeeks]
+            % muscleNumber = 1-6, specifying muscle (TA - SEMI)
+            
+            
+            % extract healthy subject emg curve for that muscle
+            emgMuscle_healthy1 = obj.healthySubject{1}.testPoints{1}.trials{1}.emgData(:,muscleNumber);
+            emgMuscle_healthy2 = obj.healthySubject{1}.testPoints{1}.trials{1}.emgData(:,muscleNumber+6);
+            emgMuscle_healthy = mean([emgMuscle_healthy1,emgMuscle_healthy2]')';
+            
+            
+            % compute correlation to healthy subject at Baseline
+            for i = 1:obj.numSubjects
+                
+                % extract subject emg curve for specified muscle
+                if compareValuesBASELINE(i) == 0 % average the emg data for both sides
+                    emgMuscle1 =  obj.subjects{i}.testPoints{1}.trials{1}.emgData(:,muscleNumber);
+                    emgMuscle2 =  obj.subjects{i}.testPoints{1}.trials{1}.emgData(:,muscleNumber+6);
+                    emgMuscle = mean([emgMuscle1,emgMuscle2]')';
+                elseif compareValuesBASELINE(i) == 1 % just look at right leg
+                    emgMuscle = obj.subjects{i}.testPoints{1}.trials{1}.emgData(:,muscleNumber);
+                elseif compareValuesBASELINE(i) == -1 % just look at left leg
+                    emgMuscle = obj.subjects{i}.testPoints{1}.trials{1}.emgData(:,muscleNumber+6);
+                end
+                
+                % compute correlation coefficient, store
+                R_mat = corrcoef(emgMuscle_healthy,emgMuscle);
+                rBASELINE(i) = R_mat(1,2);
+            end
+            % compute correlation to healthy subject at two weeks
+            for i = 1:obj.numSubjects
+                
+                % extract subject emg curve for specified muscle
+                if compareValuesTWOWEEKS(i) == 0 % average the emg data for both sides
+                    emgMuscle1 =  obj.subjects{i}.testPoints{2}.trials{1}.emgData(:,muscleNumber);
+                    emgMuscle2 =  obj.subjects{i}.testPoints{2}.trials{1}.emgData(:,muscleNumber+6);
+                    emgMuscle = mean([emgMuscle1,emgMuscle2]')';
+                elseif compareValuesTWOWEEKS(i) == 1 % just look at right leg
+                    emgMuscle = obj.subjects{i}.testPoints{2}.trials{1}.emgData(:,muscleNumber);
+                elseif compareValuesTWOWEEKS(i) == -1 % just look at left leg
+                    emgMuscle = obj.subjects{i}.testPoints{2}.trials{1}.emgData(:,muscleNumber+6);
+                end
+                
+                % compute correlation coefficient, store
+                R_mat = corrcoef(emgMuscle_healthy,emgMuscle);
+                rTWOWEEKS(i) = R_mat(1,2);
+            end
+            
+            rBASELINE = rBASELINE';
+            rTWOWEEKS = rTWOWEEKS';
+            
+            figure('Name',['MUSCLE: ' num2str(muscleNumber) ', DGI vs Correlation'])
+            set(gcf,'color','w');
+             for subj = 1:obj.numSubjects
+                 
+                 
+                     hold on
+                     plot(DGI(subj,:),[rBASELINE(subj),rTWOWEEKS(subj)],'LineStyle','-','Color','k');
+                     h = plot(DGI(subj,1),rBASELINE(subj),'o',DGI(subj,2),rTWOWEEKS(subj),'o'); % filled and open circle
+                     set(h(1),'MarkerEdgeColor','none','MarkerFaceColor','k')
+                     set(h(2),'MarkerEdgeColor','k','MarkerFaceColor','none')
+                     hold off
+                     %title(labels(j))
+                     ylim(tbiNMBL.constants_tbiNMBL.dgiPlotYAxisLimits);
+                     xlim(tbiNMBL.constants_tbiNMBL.dgiPlotXAxisLimits);
+             end
+      
+                          
+             % create legend
+            hold on
+            h(1) = plot(NaN,NaN,'o');
+            h(2) = plot(NaN,NaN,'o');
+            hold off
+            set(h(1),'MarkerEdgeColor','none','MarkerFaceColor','k')
+            set(h(2),'MarkerEdgeColor','k','MarkerFaceColor','none')
+            testPoint_strings = {'Pre','Post'};
+            %set(h(:),'linewidth',2);
+            h = legend(h(:),testPoint_strings);
+            set(h,'Position',tbiNMBL.constants_tbiNMBL.legendPosition);
+            set(h,'Box','on','FontSize',12); %'Orientation','horizontal'
+            
+            % title 
+            suptitle(['MUSCLE : ' num2str(muscleNumber) ', DGI vs Healthy Correlation']);
+        end
         function compareHealthyPlots(obj,subjectIndexNumber)
             if length(obj.healthySubject) == 0
                 disp('No healthy subject listed.')
@@ -182,6 +264,7 @@ classdef tbiNMBL < handle
             
             %subj.testPoints{testPointIndex(i)}.displayEmgTrials(checkEmgLabels, trialIndex(i));
             figure('Name','Compare Healthy')
+            set(gcf,'color','w');
             tr = obj.healthySubject{1}.testPoints{1}.trials{1};
             basetr = obj.subjects{subjectIndexNumber}.testPoints{1}.trials{1};
             twoweektr = obj.subjects{subjectIndexNumber}.testPoints{2}.trials{1};
@@ -227,8 +310,9 @@ classdef tbiNMBL < handle
             
             % just look at plantar flexors
             figure('Name','Plantar Flexors')
+            set(gcf,'color','w');
             subplot(2,1,1)
-            j = 2;
+            j = 8;
             hold on
             area([0:100]',tr.emgData(:,j),'LineStyle','none','FaceColor',tbiNMBL.constants_tbiNMBL.emgAreaColors{plotColorIndex});
             plot([0:100]',basetr.emgData(:,j),'LineStyle','--','color','k','LineWidth',1);
@@ -238,7 +322,7 @@ classdef tbiNMBL < handle
             ylim(tbiNMBL.constants_tbiNMBL.emgPlotYAxisLimits);
             xlabel(tbiNMBL.constants_tbiNMBL.emgPlotXAxisLabel);
             subplot(2,1,2)
-            j = 3;
+            j = 9;
             hold on
             area([0:100]',tr.emgData(:,j),'LineStyle','none','FaceColor',tbiNMBL.constants_tbiNMBL.emgAreaColors{plotColorIndex});
             plot([0:100]',basetr.emgData(:,j),'LineStyle','--','color','k','LineWidth',1);
@@ -247,6 +331,18 @@ classdef tbiNMBL < handle
             title(tr.emgLabel(j));
             ylim(tbiNMBL.constants_tbiNMBL.emgPlotYAxisLimits);
             xlabel(tbiNMBL.constants_tbiNMBL.emgPlotXAxisLabel);
+            
+            % create legend
+            hold on
+            handle(1) = plot(NaN,NaN,'color',tbiNMBL.constants_tbiNMBL.emgAreaColors{1});
+            handle(2) = plot(NaN,NaN,'LineStyle','--','color','k','LineWidth',1);
+            handle(3) = plot(NaN,NaN,'LineStyle','-','color','k','LineWidth',1);
+            hold off
+            testPoint_strings = {'Healthy','Pre','Post'};
+            set(handle(:),'linewidth',2);
+            h = legend(handle(:),testPoint_strings);
+            set(h,'Position',tbiNMBL.constants_tbiNMBL.legendPosition);
+            set(h,'Box','on','FontSize',12);
             
             
         end

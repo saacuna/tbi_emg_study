@@ -2,16 +2,198 @@
 
 %% create abstract plots
 
-% abstract = tbiNMBL.tbiNMBL()
-% abstract.setHealthySubject(hy_all)
-% abstract.list()
-%  abstract.addSubject(tbi07)
-% abstract.correlateSubjects(1,2,1,2);
+ abstract = tbiNMBL.tbiNMBL()
+ abstract.setHealthySubject(hy_all)
+ abstract.list()
+ abstract.addSubject(tbi01)
+ abstract.addSubject(tbi03)
+ abstract.addSubject(tbi04)
+ abstract.addSubject(tbi05)
+ abstract.addSubject(tbi07)
+ abstract.addSubject(tbi08)
+ abstract.addSubject(tbi09)
+ abstract.addSubject(tbi10)
+ abstract.addSubject(tbi11)
+ abstract.addSubject(tbi12)
+ abstract.addSubject(tbi13)
+ abstract.addSubject(tbi15)
+ abstract.addSubject(tbi16)
+ abstract.addSubject(tbi17)
+ abstract.addSubject(tbi18)
+ abstract.addSubject(tbi19)
+ abstract.addSubject(tbi20)
+ 
+%% DGI
+DGI = [...
+    9, 9;   %tbi01
+    22 24;  %tbi03
+    12 11;   %tbi04
+    13 21;   %tbi05
+    17 24;   %tbi07
+    23 24;   %tbi08
+    20 21;   %tbi09
+    4 6;   %tbi10
+    18 22;   %tbi11
+    20 20;   %tbi12
+    24 23;   %tbi13
+    17 24;   %tbi15
+    21 22;   %tbi16
+    22 24;   %tbi17
+    22 24;   %tbi18
+    24 24;   %tbi19
+    23 24;]   %tbi20
 
-abstract.compareHealthyPlots(1)
-DGI = [13 23; 10 18]
+%%
+% select which muscles to compare
+% average (0), left(-1), or right(1)
+compareGastrocBASELINE = [...
+    1;   %tbi01
+    0;  %tbi03
+    0;   %tbi04
+    0;   %tbi05
+    0;   %tbi07
+    0;   %tbi08
+    0;   %tbi09
+    0;   %tbi10
+    0;   %tbi11
+    0;   %tbi12
+    0;   %tbi13
+    0;   %tbi15
+    0;   %tbi16
+    0;   %tbi17
+    0;   %tbi18
+    0;   %tbi19
+    0;];   %tbi20
+
+compareGastrocTWOWEEKS = [...
+    1;   %tbi01
+    0;  %tbi03
+    0;   %tbi04
+    0;   %tbi05
+    -1;   %tbi07
+    0;   %tbi08
+    0;   %tbi09
+    0;   %tbi10
+    0;   %tbi11
+    0;   %tbi12
+    0;   %tbi13
+    0;   %tbi15
+    0;   %tbi16
+    0;   %tbi17
+    0;   %tbi18
+    0;   %tbi19
+    0;];   %tbi20
+
+compareSoleusBASELINE = [...
+    1;   %tbi01
+    0;  %tbi03
+    0;   %tbi04
+    0;   %tbi05
+    1;   %tbi07
+    0;   %tbi08
+    0;   %tbi09
+    0;   %tbi10
+    0;   %tbi11
+    0;   %tbi12
+    0;   %tbi13
+    0;   %tbi15
+    0;   %tbi16
+    0;   %tbi17
+    0;   %tbi18
+    0;   %tbi19
+    0;];   %tbi20
+
+
+compareSoleusTWOWEEKS = [...
+    1;   %tbi01
+    0;  %tbi03
+    0;   %tbi04
+    0;   %tbi05
+    0;   %tbi07
+    0;   %tbi08
+    0;   %tbi09
+    0;   %tbi10
+    0;   %tbi11
+    0;   %tbi12
+    0;   %tbi13
+    0;   %tbi15
+    -1;   %tbi16
+    0;   %tbi17
+    0;   %tbi18
+    0;   %tbi19
+    0;];   %tbi20
+
+compareTABASELINE = [...
+    0;   %tbi01
+    0;  %tbi03
+    0;   %tbi04
+    0;   %tbi05
+    0;   %tbi07
+    0;   %tbi08
+    0;   %tbi09
+    0;   %tbi10
+    0;   %tbi11
+    0;   %tbi12
+    0;   %tbi13
+    0;   %tbi15
+    0;   %tbi16
+    0;   %tbi17
+    0;   %tbi18
+    0;   %tbi19
+    0;];   %tbi20
+
+
+compareTATWOWEEKS = [...
+    0;   %tbi01
+    0;  %tbi03
+    0;   %tbi04
+    0;   %tbi05
+    0;   %tbi07
+    0;   %tbi08
+    0;   %tbi09
+    0;   %tbi10
+    0;   %tbi11
+    0;   %tbi12
+    0;   %tbi13
+    1;   %tbi15
+    0;   %tbi16
+    0;   %tbi17
+    0;   %tbi18
+    0;   %tbi19
+    0;];   %tbi20
+
+
+%%
+abstract.compareHealthyPlots(4)
+
+%%
 abstract.plotDGIvsCorr(DGI)
 
+%%
+%close all
+[gasBASE,  gas2WK] = abstract.plotDGIvsCorr_muscle(2,DGI,compareGastrocBASELINE,compareGastrocTWOWEEKS) % gastroc
+[solBASE,  sol2WK] = abstract.plotDGIvsCorr_muscle(3,DGI,compareSoleusBASELINE,compareSoleusTWOWEEKS) % soleus
+[h,p,ci,stats] = ttest(solBASE,sol2WK) %signifcant change in DGI scores
+
+%%
+[TABASE,  TA2WK] = abstract.plotDGIvsCorr_muscle(1,DGI,compareTABASELINE,compareTATWOWEEKS) % tib anterior
+mean(TABASE)
+mean(TA2WK)
+[h,p,ci,stats] = ttest(TABASE,TA2WK) %signifcant change in DGI scores
+
+%%
+% compare DGI values
+figure
+set(gcf,'color','w');
+bar([mean(DGI(:,1)), mean(DGI(:,2))],'EdgeColor',rgb('Black'),'FaceColor',rgb('Gainsboro'))
+xlim([0 3])
+sigstar([1,2])
+Labels = {'Pre', 'Post'};
+   set(gca, 'XTick', 1:2, 'XTickLabel', Labels,'fontsize',12);
+   title('DGI Scores')
+   
+
+[h,p,ci,stats] = ttest(DGI(:,1),DGI(:,2),'Alpha',0.01) %signifcant change in DGI scores
 %%
 close all
 hy_all.plotSubject([1 2 3 4  ],[ 1 1 1 1])

@@ -15,7 +15,7 @@ classdef constants_tbiNMBL
       legendPosition = [.4 .001 .2 .1] ; % normalized to figure : left, bottom, width, height
       transparentErrorBars = [1]; % 1 = transparent, 0 = opaque
       showErrorBars = [1]; % 1 = show them, 0 = hide
-      dgiPlotYAxisLimits = [.5,1];
+      dgiPlotYAxisLimits = [0,1];
       dgiPlotXAxisLimits = [0,25];
    end
 end
