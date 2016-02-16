@@ -314,9 +314,10 @@ classdef tbiNMBL < handle
             subplot(2,1,1)
             j = 8;
             hold on
-            area([0:100]',tr.emgData(:,j),'LineStyle','none','FaceColor',tbiNMBL.constants_tbiNMBL.emgAreaColors{plotColorIndex});
-            plot([0:100]',basetr.emgData(:,j),'LineStyle','--','color','k','LineWidth',1);
-            plot([0:100]',twoweektr.emgData(:,j),'color','k','LineWidth',1);
+            %area([0:100]',tr.emgData(:,j),'LineStyle','none','FaceColor',tbiNMBL.constants_tbiNMBL.emgAreaColors{plotColorIndex});
+            shadedErrorBar([0:100]',tr.emgData(:,j),tr.emgStd(:,j),{'color',tbiNMBL.constants_tbiNMBL.emgAreaColors{plotColorIndex}},tbiNMBL.constants_tbiNMBL.transparentErrorBars);
+            plot([0:100]',basetr.emgData(:,j),'LineStyle','--','color','k','LineWidth',2);
+            plot([0:100]',twoweektr.emgData(:,j),'color','k','LineWidth',2);
             hold off
             title(tr.emgLabel(j));
             ylim(tbiNMBL.constants_tbiNMBL.emgPlotYAxisLimits);
@@ -324,9 +325,10 @@ classdef tbiNMBL < handle
             subplot(2,1,2)
             j = 9;
             hold on
-            area([0:100]',tr.emgData(:,j),'LineStyle','none','FaceColor',tbiNMBL.constants_tbiNMBL.emgAreaColors{plotColorIndex});
-            plot([0:100]',basetr.emgData(:,j),'LineStyle','--','color','k','LineWidth',1);
-            plot([0:100]',twoweektr.emgData(:,j),'color','k','LineWidth',1);
+            %area([0:100]',tr.emgData(:,j),'LineStyle','none','FaceColor',tbiNMBL.constants_tbiNMBL.emgAreaColors{plotColorIndex});
+            shadedErrorBar([0:100]',tr.emgData(:,j),tr.emgStd(:,j),{'color',tbiNMBL.constants_tbiNMBL.emgAreaColors{plotColorIndex}},tbiNMBL.constants_tbiNMBL.transparentErrorBars);
+            plot([0:100]',basetr.emgData(:,j),'LineStyle','--','color','k','LineWidth',2);
+            plot([0:100]',twoweektr.emgData(:,j),'color','k','LineWidth',2);
             hold off
             title(tr.emgLabel(j));
             ylim(tbiNMBL.constants_tbiNMBL.emgPlotYAxisLimits);

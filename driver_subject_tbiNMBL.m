@@ -1,5 +1,5 @@
 % driver for tbiNMBL.subject_tbiNMBL
-
+return
 %% create abstract plots
 
  abstract = tbiNMBL.tbiNMBL()
@@ -162,19 +162,129 @@ compareTATWOWEEKS = [...
     0;   %tbi19
     0;];   %tbi20
 
+%%
+compareRF_BASELINE = [...
+    0;   %tbi01
+    0;  %tbi03
+    0;   %tbi04
+    0;   %tbi05
+    0;   %tbi07
+    0;   %tbi08
+    0;   %tbi09
+    0;   %tbi10
+    0;   %tbi11
+    0;   %tbi12
+    0;   %tbi13
+    0;   %tbi15
+    0;   %tbi16
+    0;   %tbi17
+    0;   %tbi18
+    0;   %tbi19
+    0;];   %tbi20
+
+
+compareRF_TWOWEEKS = [...
+    0;   %tbi01
+    0;  %tbi03
+    0;   %tbi04
+    0;   %tbi05
+    0;   %tbi07
+    0;   %tbi08
+    0;   %tbi09
+    0;   %tbi10
+    0;   %tbi11
+    0;   %tbi12
+    0;   %tbi13
+    0;   %tbi15
+    0;   %tbi16
+    0;   %tbi17
+    0;   %tbi18
+    0;   %tbi19
+    0;];   %tbi20
+
+compareVL_BASELINE = [...
+    0;   %tbi01
+    0;  %tbi03
+    0;   %tbi04
+    0;   %tbi05
+    0;   %tbi07
+    0;   %tbi08
+    0;   %tbi09
+    0;   %tbi10
+    0;   %tbi11
+    0;   %tbi12
+    0;   %tbi13
+    0;   %tbi15
+    0;   %tbi16
+    0;   %tbi17
+    0;   %tbi18
+    0;   %tbi19
+    0;];   %tbi20
+
+
+compareVL_TWOWEEKS = [...
+    0;   %tbi01
+    0;  %tbi03
+    0;   %tbi04
+    0;   %tbi05
+    0;   %tbi07
+    0;   %tbi08
+    0;   %tbi09
+    0;   %tbi10
+    0;   %tbi11
+    0;   %tbi12
+    0;   %tbi13
+    0;   %tbi15
+    0;   %tbi16
+    0;   %tbi17
+    0;   %tbi18
+    0;   %tbi19
+    0;];   %tbi20
+
+compareSEMI_BASELINE = [...
+    0;   %tbi01
+    0;  %tbi03
+    0;   %tbi04
+    0;   %tbi05
+    0;   %tbi07
+    0;   %tbi08
+    0;   %tbi09
+    0;   %tbi10
+    0;   %tbi11
+    0;   %tbi12
+    0;   %tbi13
+    0;   %tbi15
+    0;   %tbi16
+    0;   %tbi17
+    0;   %tbi18
+    0;   %tbi19
+    0;];   %tbi20
+
+
+compareSEMI_TWOWEEKS = [...
+    0;   %tbi01
+    1;  %tbi03
+    0;   %tbi04
+    1;   %tbi05
+    0;   %tbi07
+    0;   %tbi08
+    0;   %tbi09
+    0;   %tbi10
+    0;   %tbi11
+    0;   %tbi12
+    0;   %tbi13
+    0;   %tbi15
+    0;   %tbi16
+    0;   %tbi17
+    0;   %tbi18
+    0;   %tbi19
+    0;];   %tbi20
 
 %%
 abstract.compareHealthyPlots(4)
 
 %%
 abstract.plotDGIvsCorr(DGI)
-
-%%
-%close all
-[gasBASE,  gas2WK] = abstract.plotDGIvsCorr_muscle(2,DGI,compareGastrocBASELINE,compareGastrocTWOWEEKS) % gastroc
-[solBASE,  sol2WK] = abstract.plotDGIvsCorr_muscle(3,DGI,compareSoleusBASELINE,compareSoleusTWOWEEKS) % soleus
-[h,p,ci,stats] = ttest(solBASE,sol2WK) %signifcant change in DGI scores
-
 %%
 [TABASE,  TA2WK] = abstract.plotDGIvsCorr_muscle(1,DGI,compareTABASELINE,compareTATWOWEEKS) % tib anterior
 mean(TABASE)
@@ -182,15 +292,49 @@ mean(TA2WK)
 [h,p,ci,stats] = ttest(TABASE,TA2WK) %signifcant change in DGI scores
 
 %%
+[gasBASE,  gas2WK] = abstract.plotDGIvsCorr_muscle(2,DGI,compareGastrocBASELINE,compareGastrocTWOWEEKS) % gastroc
+mean(gasBASE)
+mean(gas2WK)
+[h,p,ci,stats] = ttest(gasBASE,gas2WK) %signifcant change in DGI scores
+
+%%
+[solBASE,  sol2WK] = abstract.plotDGIvsCorr_muscle(3,DGI,compareSoleusBASELINE,compareSoleusTWOWEEKS) % soleus
+[h,p,ci,stats] = ttest(solBASE,sol2WK) %signifcant change in DGI scores
+
+
+%%
+[vlBASE,  vl2WK] = abstract.plotDGIvsCorr_muscle(4,DGI,compareVL_BASELINE,compareVL_TWOWEEKS) % vastus lateralis
+mean(vlBASE)
+mean(vl2WK)
+[h,p,ci,stats] = ttest(vlBASE,vl2WK) %signifcant change in DGI scores
+
+%%
+[rfBASE,  rf2WK] = abstract.plotDGIvsCorr_muscle(5,DGI,compareRF_BASELINE,compareVL_TWOWEEKS) % vastus lateralis
+mean(rfBASE)
+mean(rf2WK)
+[h,p,ci,stats] = ttest(rfBASE,rf2WK) %signifcant change in DGI scores
+
+%%
+[semiBASE,  semi2WK] = abstract.plotDGIvsCorr_muscle(6,DGI,compareSEMI_BASELINE,compareVL_TWOWEEKS) % vastus lateralis
+mean(semiBASE)
+mean(semi2WK)
+[h,p,ci,stats] = ttest(semiBASE,semi2WK) %signifcant change in DGI scores
+
+
+%%
 % compare DGI values
 figure
 set(gcf,'color','w');
 bar([mean(DGI(:,1)), mean(DGI(:,2))],'EdgeColor',rgb('Black'),'FaceColor',rgb('Gainsboro'))
+hold on 
+errorbar(1:2,[mean(DGI(:,1)), mean(DGI(:,2))],[std(DGI(:,1)), std(DGI(:,2))],'LineStyle','none')
+hold off
 xlim([0 3])
 sigstar([1,2])
 Labels = {'Pre', 'Post'};
    set(gca, 'XTick', 1:2, 'XTickLabel', Labels,'fontsize',12);
    title('DGI Scores')
+   
    
 
 [h,p,ci,stats] = ttest(DGI(:,1),DGI(:,2),'Alpha',0.01) %signifcant change in DGI scores
