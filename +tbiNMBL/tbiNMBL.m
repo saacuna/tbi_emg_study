@@ -323,7 +323,7 @@ classdef tbiNMBL < handle
             ylim(tbiNMBL.constants_tbiNMBL.emgPlotYAxisLimits);
             xlabel(tbiNMBL.constants_tbiNMBL.emgPlotXAxisLabel);
             subplot(2,1,2)
-            j = 9;
+            j = 9-6;
             hold on
             %area([0:100]',tr.emgData(:,j),'LineStyle','none','FaceColor',tbiNMBL.constants_tbiNMBL.emgAreaColors{plotColorIndex});
             shadedErrorBar([0:100]',tr.emgData(:,j),tr.emgStd(:,j),{'color',tbiNMBL.constants_tbiNMBL.emgAreaColors{plotColorIndex}},tbiNMBL.constants_tbiNMBL.transparentErrorBars);

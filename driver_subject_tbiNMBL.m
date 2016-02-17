@@ -281,7 +281,7 @@ compareSEMI_TWOWEEKS = [...
     0;];   %tbi20
 
 %%
-abstract.compareHealthyPlots(4)
+abstract.compareHealthyPlots(9) %options: 12, 4, 5, (9 = tbi11)
 
 %%
 abstract.plotDGIvsCorr(DGI)
@@ -297,10 +297,36 @@ mean(gasBASE)
 mean(gas2WK)
 [h,p,ci,stats] = ttest(gasBASE,gas2WK) %signifcant change in DGI scores
 
+figure
+set(gcf,'color','w');
+bar([mean(gasBASE), mean(gas2WK)],'EdgeColor',rgb('Black'),'FaceColor',rgb('Gainsboro'))
+hold on 
+errorbar(1:2,[mean(gasBASE), mean(gas2WK)],[std(gasBASE), std(gas2WK)],'LineStyle','none')
+hold off
+xlim([0 3])
+ylim([0 1.2])
+sigstar([1,2])
+Labels = {'Pre', 'Post'};
+   set(gca, 'XTick', 1:2, 'XTickLabel', Labels,'fontsize',12);
+   title('Gastrocnemius Correlation')
+   
+
 %%
 [solBASE,  sol2WK] = abstract.plotDGIvsCorr_muscle(3,DGI,compareSoleusBASELINE,compareSoleusTWOWEEKS) % soleus
 [h,p,ci,stats] = ttest(solBASE,sol2WK) %signifcant change in DGI scores
 
+figure
+set(gcf,'color','w');
+bar([mean(solBASE), mean(sol2WK)],'EdgeColor',rgb('Black'),'FaceColor',rgb('Gainsboro'))
+hold on 
+errorbar(1:2,[mean(solBASE), mean(sol2WK)],[std(solBASE), std(sol2WK)],'LineStyle','none')
+hold off
+xlim([0 3])
+ylim([0 1.2])
+sigstar([1,2])
+Labels = {'Pre', 'Post'};
+   set(gca, 'XTick', 1:2, 'XTickLabel', Labels,'fontsize',12);
+   title('Soleus Correlation')
 
 %%
 [vlBASE,  vl2WK] = abstract.plotDGIvsCorr_muscle(4,DGI,compareVL_BASELINE,compareVL_TWOWEEKS) % vastus lateralis
