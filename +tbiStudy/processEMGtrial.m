@@ -1,5 +1,5 @@
-function tr = processEMGtrial()
-% Filename: trial_tbiNMBL.m
+function tr = processEMGtrial(varargin)
+% Filename: processEMGtrial.m
 % Author:   Samuel Acuna
 % Date:     24 May 2016
 % Description:
@@ -11,11 +11,16 @@ function tr = processEMGtrial()
 % computer. load .hpf into workspace, click 'Tools', 'export to text tile'. Put this
 % file in the same location as the original .hpf
 %
-
+% Usage:
+%       tr = tbiStudy.processEMGtrial();
+%
+% optional: insert this trial into the database after processing
+%       tr = tbiStudy.processEMGtrial(1);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % load EMG data txt file
-[infile, inpath]=uigetfile('*.txt','Select input file');
+disp('Select .txt EMG data file');
+[infile, inpath]=uigetfile('*.txt','Select input file',tbiStudy.constants.dataFolder);
 if infile == 0
     error('Canceled. No file selected');
 end
@@ -92,6 +97,14 @@ tr(1).filename = ['tbi' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.te
 save([tr.dataFileLocation tr.filename], 'tr');
 disp(['Trial Data saved as: ' tr.filename]);
 disp(['in folder: ' tr.dataFileLocation]);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% optionally, insert this trial into the database
+if nargin > 0
+    if varargin{1} == 1
+        tbiStudy.addTrialToDatabase(tr);
+    end
+end
 end
 
 

@@ -1,3 +1,9 @@
+Name: Samuel Acuña
+Date: 24 May 2016
+
+Update: this tbiNMBL class has been replaced by the tbiStudy functions. Much easier to implement, since it uses a SQLite database.
+
+
 Name:   Samuel Acuña
 Date:   27 Jan 2016
 
