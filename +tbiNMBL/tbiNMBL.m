@@ -126,9 +126,13 @@ classdef tbiNMBL < handle
                  for j = 1:6 % right leg
                      subplot(6,2,2*j);
                      hold on
+                     % first plot the straight line
                      plot(DGI(subj,:),[baselineCorr(j,subj),twoWeekCorr(j,subj)],'LineStyle','-','Color','k');
+                     % Then plot an invisible line, with circles as endpoints
                      h = plot(DGI(subj,1),baselineCorr(j,subj),'o',DGI(subj,2),twoWeekCorr(j,subj),'o'); % filled and open circle
+                     % set first circle as filled
                      set(h(1),'MarkerEdgeColor','none','MarkerFaceColor','k')
+                     % set second circle as empty
                      set(h(2),'MarkerEdgeColor','k','MarkerFaceColor','none')
                      hold off
                      title(labels(j))
@@ -151,6 +155,7 @@ classdef tbiNMBL < handle
              
              % create legend
             hold on
+            % plot a fake point, otherwise its a hassle trying to keep track of all the plots looped on top of each other when forming a legend
             h(1) = plot(NaN,NaN,'o');
             h(2) = plot(NaN,NaN,'o');
             hold off
@@ -162,7 +167,7 @@ classdef tbiNMBL < handle
             set(h,'Position',tbiNMBL.constants_tbiNMBL.legendPosition);
             set(h,'Box','on','Orientation','horizontal','FontSize',12);
             
-            % title 
+            % create title that goes over all the subplots
             suptitle(['DGI vs Healthy Correlation']);
             
              
