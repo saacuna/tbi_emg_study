@@ -31,7 +31,7 @@ conn = database('', '', '', 'org.sqlite.JDBC', tbiStudy.constants.dbURL);
 exec(conn,'PRAGMA foreign_keys=ON');
 datainsert(conn,'tbi_subjects',tbiStudy.constants.tbi_subjects_columnNames,data);
 close(conn);
-disp(['successfully added tbi subject ' num2str(subject_id) 'to the database']);
+disp(['successfully added tbi subject ' num2str(subject_id) ' to the database']);
 end
 
 % information input functions
