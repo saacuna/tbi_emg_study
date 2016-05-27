@@ -24,12 +24,17 @@ if nargin == 0 % if not inputted, find and load the trial
         error('Canceled. No file selected');
     end
     load([inpath infile]);
+    disp(['Selected: ' infile ]);
 end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
+% add any additional notes about how EMG was processed
+trialProcessingNotes = setNotes();
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
 % prepare SQL insert data
-data = {tr.subject_id, tr.testPoint, tr.trialType, tr.dataFileLocation, tr.filename};
+data = {tr.subject_id, tr.testPoint, tr.trialType, tr.dataFileLocation, tr.filename,trialProcessingNotes};
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -40,4 +45,12 @@ exec(conn,'PRAGMA foreign_keys=ON');
 datainsert(conn,'trials',tbiStudy.constants.trials_columnNames,data);
 close(conn);
 disp([tr.filename ' successfully added to the database']);
+end
+
+function notes = setNotes() % add notes dialogue box
+prompt = {'trial EMG Processing Notes:   (if any)'};
+prompt_title = 'trial EMG Processing Notes';
+prompt_answer = inputdlg(prompt,prompt_title,[3 60]);
+if isempty(prompt_answer); prompt_answer{1} = ''; end; 
+notes = prompt_answer{1};
 end

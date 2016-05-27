@@ -10,6 +10,9 @@ function tr = processEMGtrial(varargin)
 % To create the .txt version, open program 'emgworks_analysis' on collection
 % computer. load .hpf into workspace, click 'Tools', 'export to text tile'. Put this
 % file in the same location as the original .hpf
+% 
+% This puts the processed Matlab file in the same location as the original
+% .txt file
 %
 % Usage:
 %       tr = tbiStudy.processEMGtrial();
@@ -24,7 +27,7 @@ disp('Select .txt EMG data file');
 if infile == 0
     error('Canceled. No file selected');
 end
-
+disp(['Selected: ' infile ]);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -326,6 +329,7 @@ for ii=1:12
     emgdatar(:,ii)=emg(ii).data; %Raw emg data - Here just pulling the matrix of data out of the structure I loaded
     emgdatalabel{ii}=emg(ii).label;
 end
+emgdatar = detrend(emgdatar,0); % remove DC offset
 EMfr=filtfilt(bb,aa,emgdatar); %Zero-shift filter removing drift first
 EMGr=filtfilt(b,a,EMfr); %Zero-shift filter removing high frequency noise
 EMGabs=abs(EMGr); %Rectify data

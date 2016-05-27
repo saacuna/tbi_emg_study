@@ -29,8 +29,11 @@ close(curs);
 
 % prepare structure of queried data
 data = curs.Data;
-if strcmp(data{1,1},'No Data')
-    disp('Query Returned no results.');
+
+if ~iscell(data)
+    disp('Query failed. Check for typos.');
+elseif strcmp(data{1,1},'No Data')
+    disp('Successful Query, but returned no results.');
 else 
     [rows, ~] = size(data);
     tr_temp = [];

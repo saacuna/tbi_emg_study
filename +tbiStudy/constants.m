@@ -12,7 +12,7 @@ classdef constants
       
       % database connection properties
       dbURL = 'jdbc:sqlite:/Users/samuelacuna_mini/Documents/_Research Local/_Data tbi_emg/emg_tbi_database.db';
-      trials_columnNames = {'subject_id','testPoint','trialType','dataFileLocation', 'filename'};
+      trials_columnNames = {'subject_id','testPoint','trialType','dataFileLocation', 'filename', 'trialProcessingNotes'};
       tbi_subjects_columnNames = {'subject_id','initials','stimulation_level','status'};
       testPoints_columnNames = {'subject_id','testPoint','dateCollected','dataCollectedBy','walkingSpeed_time1','walkingSpeed_1','walkingSpeed_time2','walkingSpeed_2','walkingSpeed_preferred','treadmillSpeed_preferred','treadmillSpeed_baseline','notes'};
    end
