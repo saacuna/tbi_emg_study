@@ -2,7 +2,7 @@
 
 
 %%%%%%%%%%%%%%%%%%%
-%%
+%% use this to scrub john's files as I enter into the database
  disp('Select trial .mat file')
     [infile, inpath]=uigetfile('*.mat','Select trial',tbiStudy.constants.dataFolder);
     if infile == 0
