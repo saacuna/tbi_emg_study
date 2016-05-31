@@ -36,7 +36,7 @@ tr= struct(...
     'subject_id',[],...
     'testPoint',[],...
     'trialType',[],...
-    'dataFileLocation',[],...
+    'dataFileLocation',[],... 
     'filename',[],...
     'emgData',{},...
     'emgStd',{},...
@@ -78,7 +78,9 @@ if (strcmp(emg(1).label,'L TIBIALIS ANTERIOR'))
         emg(i) = emg(i+1);
     end
     emg(7) = temp;
+    disp(' ');
     disp('Rearranged Data because sensor 1 is in place of sensor 8.')
+    disp(' ');
 end
 
 [emgcyc, emgcycstd, emgcyclabel, emgcycfreq] = calcEmgCycle(emg, ax, ay, az, calculationPlots);
@@ -100,6 +102,10 @@ tr(1).filename = ['tbi' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.te
 save([tr.dataFileLocation tr.filename], 'tr');
 disp(['Trial Data saved as: ' tr.filename]);
 disp(['in folder: ' tr.dataFileLocation]);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% plot trial
+tbiStudy.plot.single(tr);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % optionally, insert this trial into the database
@@ -355,10 +361,14 @@ end
 
 %%%%%%%% if I need to switch sensors for left and right leg, do
 %%%%%%%% it here.
-% j = 4 ;
-% emgc(j)=avgcycle(emgtime,emgdata(:,j),ax(2).time(hslp),10,50); %right leg muslces
-% emgc(6+j)=avgcycle(emgtime,emgdata(:,6+j),ax(1).time(hsrp),10,50); % left leg muscles
-
+% either loop for all muscles (j = 1:6) or choose indiviudal muscle (e.g. j = 4)
+%  for j = 1:6; % 4; 
+%  emgc(j)=avgcycle(emgtime,emgdata(:,j),ax(2).time(hslp),10,50); %right leg muslces
+%  emgc(6+j)=avgcycle(emgtime,emgdata(:,6+j),ax(1).time(hsrp),10,50); % left leg muscles
+%  end
+%     disp(' ');
+%     disp('Switched accelerometer data for left and right legs, as they were switched during collection.')
+%     disp(' ');
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

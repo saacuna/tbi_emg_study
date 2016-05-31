@@ -14,7 +14,7 @@ classdef plot
     
     properties (Constant, Access = 'public')
         % plotting parameters
-        emgPlotYAxisLimits = [0, 3];
+        emgPlotYAxisLimits = [0, 4];
         emgPlotXAxisLabel = '' % 'Percent of Gait Cycle';
         emgPlotColors = {rgb('Blue') rgb('Red') rgb('ForestGreen') rgb('Yellow') rgb('Tomato')}; % the order of colors plotted, using rgb (Author: Kristján Jónasson, Dept. of Computer Science, University of Iceland (jonasson@hi.is). June 2009.
         emgAreaColors = {rgb('Gray') };
@@ -109,6 +109,9 @@ classdef plot
             
             % retrieve from database
             sqlquery = ['select * from trials where subject_id = ' num2str(subject_id) ' and trialType = "' trialType '"'];
+            if strcmp(trialType,'preferred'); 
+                sqlquery = ['select * from trials where subject_id = ' num2str(subject_id) ' and (trialType = "preferred" or (testPoint = 1 and trialType = "baseline"))'];
+            end
             tr = tbiStudy.loadSelectTrials(sqlquery);
             
             % create figure
