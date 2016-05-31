@@ -1,15 +1,16 @@
-function addTrialToDatabase(tr)
+function addTrialToDatabase(tr,inpath)
 % Filename: addTrialToDatabase.m
 % Author:   Samuel Acuna
 % Date:     24 May 2016
 % Description:
 % This function simply adds the filename and location of a trial structure
 % into the SQLite database. The trial structure is created using
-% tbiStudy.procesEMGtrail(),
+% tbiStudy.procesEMGtrail().
+% make sure the trial file is somewhere in folder: tbiStudy.constants.dataFolder
 %
 %
 % Usage:
-%       tbiStudy.addTrialToDatabase(tr);
+%       tbiStudy.addTrialToDatabase(tr,inpath);
 %
 % Alternate: popup window to find the trial file
 %       tbiStudy.addTrialToDatabase();
@@ -29,12 +30,17 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
+% make dataFileLocation relative to tbiStudy.constants.dataFolder location
+dataFileLocation = strrep(inpath,tbiStudy.constants.dataFolder,'');
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
 % add any additional notes about how EMG was processed
 trialProcessingNotes = setNotes();
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % prepare SQL insert data
-data = {tr.subject_id, tr.testPoint, tr.trialType, tr.dataFileLocation, tr.filename,trialProcessingNotes};
+data = {tr.subject_id, tr.testPoint, tr.trialType, dataFileLocation, tr.filename,trialProcessingNotes};
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%

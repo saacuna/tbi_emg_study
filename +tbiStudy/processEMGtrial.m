@@ -36,7 +36,6 @@ tr= struct(...
     'subject_id',[],...
     'testPoint',[],...
     'trialType',[],...
-    'dataFileLocation',[],... 
     'filename',[],...
     'emgData',{},...
     'emgStd',{},...
@@ -97,11 +96,10 @@ tr(1).emgFreq = emgcycfreq;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % save file 
-tr(1).dataFileLocation = inpath;
 tr(1).filename = ['tbi' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType];
-save([tr.dataFileLocation tr.filename], 'tr');
+save([inpath tr.filename], 'tr');
 disp(['Trial Data saved as: ' tr.filename]);
-disp(['in folder: ' tr.dataFileLocation]);
+disp(['in folder: ' inpath]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot trial
@@ -111,7 +109,7 @@ tbiStudy.plot.single(tr);
 % optionally, insert this trial into the database
 if nargin > 0
     if varargin{1} == 1
-        tbiStudy.addTrialToDatabase(tr);
+        tbiStudy.addTrialToDatabase(tr,inpath);
     end
 end
 end

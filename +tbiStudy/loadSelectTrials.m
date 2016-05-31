@@ -38,7 +38,10 @@ else
     [rows, ~] = size(data);
     tr_temp = [];
     for i = 1:rows %iteratively load queried trials into structure
-        load([data{i,4} data{i,5}]); % dataFileLocation, filename
+        dataFileLocation = data{i,4}; % load relative file location
+        dataFileLocation = [tbiStudy.constants.dataFolder dataFileLocation]; % create absolute file location
+        filename = data{i,5};
+        load([dataFileLocation filename]);
         tr_temp = [tr_temp; tr];
     end
     tr = tr_temp;
