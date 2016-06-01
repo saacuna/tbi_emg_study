@@ -9,6 +9,7 @@ classdef constants
       
       % data files properties
       dataFolder = '/Users/samuelacuna_mini/Documents/_Research Local/_Data tbi_emg/';
+      healthy = '/Users/samuelacuna_mini/Documents/_Research Local/_Data tbi_emg/hy_all.mat';
       
       % database connection properties
       dbURL = 'jdbc:sqlite:/Users/samuelacuna_mini/Documents/_Research Local/_Data tbi_emg/emg_tbi_database.db';

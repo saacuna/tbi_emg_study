@@ -126,6 +126,166 @@ classdef plot
             labels = strcat('TP ', cellstr(num2str([tr(:).testPoint]')));
             tbiStudy.plot.legend(labels);
         end
+        function comparehealthy(subject_id,testPoint,trialType) % single trial plot vs healthy emg
+            % FOR NOW, USeS  AN AGGREGATE HEALTHY TRIAL  AS SPECIFIED IN
+            % tbiStudy.constants.healthy, BUT IN FUTURE, WILL HAVE A
+            % DATABASE OF HEALTHY SUBJECTS, SO THIS WILL BE UPDATED TO
+            % REFLECT THAT
+            
+            % specify defaults
+            if nargin < 3
+                trialType = 'baseline';
+            end
+            if nargin < 2
+                testPoint = 1;
+            end
+            
+            % retrieve one trial from database
+            if strcmp(trialType,'preferred') && (testPoint == 1); trialType = 'baseline'; end
+            sqlquery = ['select * from trials where subject_id = ' num2str(subject_id) ' and testPoint = ' num2str(testPoint) ' and trialType = "' trialType '"'];
+            tr = tbiStudy.loadSelectTrials(sqlquery);
+            
+            assert(length(tr) == 1, 'Should only be specifying one specific trial');
+            
+            % append healthy subject to working trial
+            load(tbiStudy.constants.healthy); % healthy subject has the workspace variable 'hy'
+            tr = [tr; hy];
+            
+            % create figure
+            titleName = ['TBI-' num2str(subject_id) ', testPoint ' num2str(testPoint) ', ' trialType ' VS Healthy'];
+            figure('Name',titleName);
+            suptitle(titleName);
+            
+            % wrapper to multiple plot
+            tbiStudy.plot.multiple(tr);
+            
+            % create legend
+            labels{1} = ['tbi' num2str(tr(1).subject_id)];
+            labels{2} = 'healthy';
+            tbiStudy.plot.legend(labels);
+        end
+        function DGIvsHealthyCor() % plots DGI vs healthy Correlation for specified trials
+            
+            % retrieve from database, using default values
+            sqlquery = ['select trials.* from trials, tbi_subjectsSummary_loadedTrials '...
+                'where (tbi_subjectsSummary_loadedTrials.subject_id = trials.subject_id) '...
+                'and (totalNumTestPoints > 1) '...
+                'and trialType = "baseline" '... % default trialType
+                'and (testPoint = 1 or testPoint = 2)']; % default Pre/Post window
+            tr = tbiStudy.loadSelectTrials(sqlquery);
+            
+            % observe that all the odd rows are PRE and all the even rows
+            % are POST
+            [rows ~] = size(tr); % total rows
+            
+            % find healthy correlation for each trial
+            healthyCor =  zeros(rows,12); % 12 mucles
+            for i = 1:rows
+                cor = tbiStudy.correlation.healthy(tr(i)); % calc correlation matrices for each muscle
+                for muscle = 1:12 
+                    healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                end
+            end
+            
+            % muscle labels
+            for i = 1:12
+            labels{i} = cor{i,2};
+            end
+            
+            % find DGI that corresponds to each trial
+            sqlquery = ['select DGI.* from DGI, tbi_subjectsSummary_loadedTrials '...
+                'where (tbi_subjectsSummary_loadedTrials.subject_id = DGI.subject_id) '...
+                'and (totalNumTestPoints > 1) '...
+                'and (testPoint = 1 or testPoint = 2)']; % default Pre/Post window
+            conn = database('', '', '', 'org.sqlite.JDBC', tbiStudy.constants.dbURL);
+            exec(conn,'PRAGMA foreign_keys=ON');
+            curs = exec(conn, sqlquery);
+            curs = fetch(curs);
+            DGI = curs.Data;
+            DGI = cell2mat(DGI(:,3));
+            close(curs);
+            close(conn);
+            % observe that all the odd rows are PRE and all the even rows
+            % are POST, and they match with the pre/post trials above
+
+            % assemble data for plotting
+            % DGIplot = [pre post]
+            DGIplot = zeros(2,rows/2);
+            DGIplot(1,:) = DGI(1:2:rows);
+            DGIplot(2,:) = DGI(2:2:rows);
+            
+            % assemble data for plotting
+            % healthyCorPlot = [pre post], each with 12 muscles
+            healthyCorPlot = zeros(2,rows/2,12);
+            healthyCorPlot(1,:,:) = healthyCor(1:2:rows,:);
+            healthyCorPlot(2,:,:) = healthyCor(2:2:rows,:);
+            
+            % create figure
+            figure('Name','DGI vs Correlation')
+            set(gcf,'color','w');
+             
+                 for j = 1:6 % right leg
+                     subplot(6,2,2*j);
+                     hold on
+                     % first plot the straight line
+                     plot(DGIplot,healthyCorPlot(:,:,j),'LineStyle','-','Color','k');
+                     % Then plot an invisible line, with circles as endpoints
+                     h = plot(DGIplot(1,:),healthyCorPlot(1,:,j),'o',DGIplot(2,:),healthyCorPlot(2,:,j),'o'); % filled and open circle
+                     % set first circle as filled
+                     set(h(1),'MarkerEdgeColor','none','MarkerFaceColor','k')
+                     % set second circle as empty
+                     set(h(2),'MarkerEdgeColor','k','MarkerFaceColor','none')
+                     hold off
+                     title(labels(j))
+                     ylim(tbiStudy.plot.dgiPlotYAxisLimits);
+                     xlim(tbiStudy.plot.dgiPlotXAxisLimits);
+                 end
+                 for j = 1:6 % left leg
+                     subplot(6,2,2*j-1);
+                     hold on
+                     plot(DGIplot,healthyCorPlot(:,:,6+j),'LineStyle','-','Color','k');
+                     h = plot(DGIplot(1,:),healthyCorPlot(1,:,6+j),'o',DGIplot(2,:),healthyCorPlot(2,:,6+j),'o');
+                     set(h(1),'MarkerEdgeColor','none','MarkerFaceColor','k')
+                     set(h(2),'MarkerEdgeColor','k','MarkerFaceColor','none')
+                     hold off
+                     title(labels(6+j))
+                     ylim(tbiStudy.plot.dgiPlotYAxisLimits);
+                     xlim(tbiStudy.plot.dgiPlotXAxisLimits);
+                 end
+                 
+                 % create legend
+                 hold on
+                 % plot a fake point, otherwise its a hassle trying to keep track of all the plots looped on top of each other when forming a legend
+                 h(1) = plot(NaN,NaN,'o');
+                 h(2) = plot(NaN,NaN,'o');
+                 hold off
+                 set(h(1),'MarkerEdgeColor','none','MarkerFaceColor','k')
+                 set(h(2),'MarkerEdgeColor','k','MarkerFaceColor','none')
+                 testPoint_strings = {'Pre','Post'};
+                 %set(h(:),'linewidth',2);
+                 h = legend(h(:),testPoint_strings);
+                 set(h,'Position',tbiStudy.plot.legendPosition);
+                 set(h,'Box','on','Orientation','horizontal','FontSize',12);
+                 
+                 % create title that goes over all the subplots
+                 suptitle(['DGI vs Healthy Correlation']);
+
+        end
+        function DGIvsHealthyCor_muscle(muscleNumber)
+            %%%%%%%%% write me next!
+            
+            
+            %                      hh = plot(DGIplot,healthyCorPlot(:,:,j),'LineStyle','-','Color','k');
+            %                      % requires label toolbox. http://www.mathworks.com/matlabcentral/fileexchange/47421-label/content/label_documentation/html/label_documentation.html
+            %                      for k = 1:length(DGIplot)
+            %                      label(hh(k),num2str(tr(2*k).subject_id),'location','center');
+            %                      end
+            
+            
+            
+            
+            
+        end
         function legend(labels) % append legend to EMG plots
             % create workaround custom legend, not the cleanest, but easier than
             % moving around handles from different classes

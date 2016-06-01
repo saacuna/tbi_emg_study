@@ -83,11 +83,61 @@ classdef correlation
             
             % create labels
             for i = 1:length(tr)
-                labels{i} = ['TBI_' num2str(tr(i).subject_id)];
+                labels{i} = ['tbi' num2str(tr(i).subject_id)];
             end
             
             % list correlations on screen
             tbiStudy.correlation.list(cor,labels);
+        end
+        function cor = healthyTrial(subject_id,testPoint,trialType) % correlation between specific trial and healthy subject
+            % FOR NOW, USeS  AN AGGREGATE HEALTHY TRIAL  AS SPECIFIED IN
+            % tbiStudy.constants.healthy, BUT IN FUTURE, WILL HAVE A
+            % DATABASE OF HEALTHY SUBJECTS, SO THIS WILL BE UPDATED TO
+            % REFLECT THAT
+            
+            % cor = {corrCoeff matrices, muscleName}
+            % example: tbiStudy.correlation.
+            
+            % specify defaults
+            if nargin < 3
+                trialType = 'baseline';
+            end
+            if nargin < 2
+                testPoint = 1;
+            end
+            
+            % retrieve one trial from database
+            if strcmp(trialType,'preferred') && (testPoint == 1); trialType = 'baseline'; end
+            sqlquery = ['select * from trials where subject_id = ' num2str(subject_id) ' and testPoint = ' num2str(testPoint) ' and trialType = "' trialType '"'];
+            tr = tbiStudy.loadSelectTrials(sqlquery);
+            
+            % calculate correlation to healthy
+            cor = tbiStudy.correlation.healthy(tr);
+            
+            % create labels
+            labels{1} = ['tbi' num2str(tr(1).subject_id)];
+            labels{2} = 'healthy';
+            
+            % list correlations on screen
+            tbiStudy.correlation.list(cor,labels);
+        end
+        function cor = healthy(tr) % correlation between given trial data and healthy subject
+            % FOR NOW, USeS  AN AGGREGATE HEALTHY TRIAL  AS SPECIFIED IN
+            % tbiStudy.constants.healthy, BUT IN FUTURE, WILL HAVE A
+            % DATABASE OF HEALTHY SUBJECTS, SO THIS WILL BE UPDATED TO
+            % REFLECT THAT
+            
+            % cor = {corrCoeff matrices, muscleName}
+            % example: tbiStudy.correlation.
+            
+            assert(length(tr) == 1, 'Should only be specifying one specific trial');
+            
+            % append healthy subject to working trial
+            load(tbiStudy.constants.healthy); % healthy subject has the workspace variable 'hy'
+            tr = [tr; hy];
+            
+            % assemble observation matrix for correlation
+            cor = tbiStudy.correlation.assembleMatrix(tr);
         end
         function list(cor,labels) % display correlation coefficients to the screen
             % 'cor' will always be 12x2 cell. first column is the
