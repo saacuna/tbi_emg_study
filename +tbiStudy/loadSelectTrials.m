@@ -31,9 +31,9 @@ close(curs);
 data = curs.Data;
 
 if ~iscell(data)
-    disp('Query failed. Check for typos.');
+    error('Query failed. Check for typos.');
 elseif strcmp(data{1,1},'No Data')
-    disp('Successful Query, but returned no results.');
+    error('Successful Query, but returned no results.');
 else 
     [rows, ~] = size(data);
     tr_temp = [];

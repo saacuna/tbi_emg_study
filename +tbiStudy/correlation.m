@@ -139,6 +139,177 @@ classdef correlation
             % assemble observation matrix for correlation
             cor = tbiStudy.correlation.assembleMatrix(tr);
         end
+        function [DGI, cor, labels] = DGIvsHealthy() % DGI vs healthy Correlation, pre/post
+            
+            % 1. retrieve from database, using default values
+            sqlquery = ['select trials.* from trials, tbi_subjectsSummary_loadedTrials '...
+                'where (tbi_subjectsSummary_loadedTrials.subject_id = trials.subject_id) '...
+                'and (totalNumTestPoints > 1) '...
+                'and trialType = "baseline" '... % default trialType
+                'and (testPoint = 1 or testPoint = 2)']; % default Pre/Post window
+            tr = tbiStudy.loadSelectTrials(sqlquery);
+            
+            % observe that all the odd rows are PRE and all the even rows
+            % are POST
+            [rows ~] = size(tr); % total rows
+            
+            % 2. find healthy correlation for each trial
+            healthyCor =  zeros(rows,12); % 12 muscles
+            for i = 1:rows
+                cor = tbiStudy.correlation.healthy(tr(i)); % calc correlation matrices for each muscle
+                for muscle = 1:12 
+                    healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                end
+            end
+            
+            % 3. pull the muscle labels
+            for i = 1:12
+            labels{i} = cor{i,2};
+            end
+            
+            % 4. find DGI that corresponds to each trial
+            sqlquery = ['select DGI.* from DGI, tbi_subjectsSummary_loadedTrials '...
+                'where (tbi_subjectsSummary_loadedTrials.subject_id = DGI.subject_id) '...
+                'and (totalNumTestPoints > 1) '...
+                'and (testPoint = 1 or testPoint = 2)']; % default Pre/Post window
+            conn = database('', '', '', 'org.sqlite.JDBC', tbiStudy.constants.dbURL);
+            exec(conn,'PRAGMA foreign_keys=ON');
+            curs = exec(conn, sqlquery);
+            curs = fetch(curs);
+            DGI = curs.Data;
+            DGI = cell2mat(DGI(:,3));
+            close(curs);
+            close(conn);
+            % observe that all the odd rows are PRE and all the even rows
+            % are POST, and they match with the pre/post trials above
+
+            % 5. Now that we have our data, assemble data for plotting 
+            % DGIplot = [pre post]
+            DGI2 = zeros(rows/2,2);
+            DGI2(:,1) = DGI(1:2:rows); % pre
+            DGI2(:,2) = DGI(2:2:rows); % post
+            
+            
+            % healthyCorPlot = [pre post], each with 12 muscles
+            healthyCor2 = zeros(rows/2,2,12);
+            healthyCor2(:,1,:) = healthyCor(1:2:rows,:); % pre
+            healthyCor2(:,2,:) = healthyCor(2:2:rows,:); % post
+            
+            % 6. outputs
+            DGI = DGI2;
+            cor = healthyCor2;
+            % labels = labels; 
+        end
+        function [DGI, cor, subject_id] = DGIvsHealthy_muscle(muscleNumber) % DGI vs healthy Correlation, pre/post, one muscle group
+            % Since looking at just a single muscle, need to specify
+            % whether looking at right leg, left leg, or average of both.
+            % For most cases, use the average of both, but for some trials
+            % one of the signals might be bad data. So we neglect those.
+            %
+            % This is done by referencing the database table
+            % trial_useDataFromLeg, where each muscle is specified for
+            %           1 = use right leg data
+            %           0 = use average leg data
+            %          -1 = use left leg data
+            %
+            
+            
+            assert((muscleNumber <= 6) && (muscleNumber > 0), 'Muscle Number just 1:6. Legs chosen in database table trial_useDataFromLeg');
+            
+            
+            % 1. retrieve emg trials from database, using default values
+            sqlquery = ['select trials.*, trials_useDataFromLeg.' tbiStudy.constants.muscles{muscleNumber} ' as legChoice '...
+                'from trials, tbi_subjectsSummary_loadedTrials, trials_useDataFromLeg '...
+                'where (tbi_subjectsSummary_loadedTrials.subject_id = trials.subject_id) '...
+                'and (trials.subject_id = trials_useDataFromLeg.subject_id) '...
+                'and (trials.testPoint = trials_useDataFromLeg.testPoint) '... % trial must also have leg specified in trials_useDataFromLeg
+                'and (totalNumTestPoints > 1) '...
+                'and trials.trialType = "baseline" '... % default trialType
+                'and (trials.testPoint = 1 or trials.testPoint = 2)']; % default Pre/Post window
+            tr = tbiStudy.loadSelectTrials(sqlquery);
+            % observe that all the odd rows are PRE and all the even rows
+            % are POST
+            [rows, ~] = size(tr); % total rows
+            
+            
+            % 2. find leg choice (left,right,average) that corresponds to each trial
+            % this is from the trial_useDataFromLeg table
+            conn = database('', '', '', 'org.sqlite.JDBC', tbiStudy.constants.dbURL);
+            exec(conn,'PRAGMA foreign_keys=ON');
+            curs = exec(conn, sqlquery);
+            curs = fetch(curs);
+            legChoice = curs.Data;
+            legChoice = cell2mat(legChoice(:,7));
+            close(curs);
+            close(conn);
+            % observe that all the odd rows are PRE and all the even rows
+            % are POST, and they match with the pre/post trials above
+            
+            
+            % 3. extract healthy subject emg curve for the specified muscle
+            load(tbiStudy.constants.healthy); % healthy subject has the workspace variable 'hy'
+            healthy_muscle = mean([hy.emgData(:,muscleNumber),hy.emgData(:,muscleNumber+6)]')'; % average between legs
+            
+            
+            % 4. find healthy correlation for specified muscles
+            healthyCor =  zeros(rows,1);
+            for i = 1:rows  
+                % extract subject emg curve for the specified muscle
+                if legChoice(i) == 0  % average the emg data for both legs
+                    tbiMuscle = mean([tr(i).emgData(:,muscleNumber), tr(i).emgData(:,muscleNumber+6)],2);
+                elseif legChoice(i) == 1 % just look at the right leg
+                    tbiMuscle = tr(i).emgData(:,muscleNumber);
+                elseif legChoice(i) == -1 % just look at the left leg
+                    tbiMuscle = tr(i).emgData(:,muscleNumber+6);
+                end
+                
+                % calc correlation with healthy, store
+                R_mat = corrcoef(healthy_muscle,tbiMuscle);
+                healthyCor(i) = R_mat(1,2);
+            end
+            
+            
+            % 5. find DGI that corresponds to each trial
+            sqlquery = ['select DGI.* from DGI, trials, tbi_subjectsSummary_loadedTrials, trials_useDataFromLeg '...
+                'where (DGI.subject_id = trials.subject_id) and (DGI.testPoint = trials.testPoint) '...
+                'and (tbi_subjectsSummary_loadedTrials.subject_id = trials.subject_id) '...
+                'and (trials.subject_id = trials_useDataFromLeg.subject_id) '...
+                'and (trials.testPoint = trials_useDataFromLeg.testPoint) '... % trial must also have leg specified in trials_useDataFromLeg
+                'and (totalNumTestPoints > 1) '...
+                'and trials.trialType = "baseline" '... % default trialType
+                'and (trials.testPoint = 1 or trials.testPoint = 2)']; % default Pre/Post window
+            conn = database('', '', '', 'org.sqlite.JDBC', tbiStudy.constants.dbURL);
+            exec(conn,'PRAGMA foreign_keys=ON');
+            curs = exec(conn, sqlquery);
+            curs = fetch(curs);
+            DGI = curs.Data;
+            DGI = cell2mat(DGI(:,3));
+            close(curs);
+            close(conn);
+            % observe that all the odd rows are PRE and all the even rows
+            % are POST, and they match with the pre/post trials above
+            
+            
+            % 6. now that we have all our data, prepare data in nicer matrices
+            % DGIplot = [pre post]
+            DGI2 = zeros(rows/2,2);
+            DGI2(:,1) = DGI(1:2:rows); % pre
+            DGI2(:,2) = DGI(2:2:rows); % post
+            
+            % healthyCorPlot = [pre post]
+            healthyCor2 = zeros(rows/2,2);
+            healthyCor2(:,1) = healthyCor(1:2:rows); % pre
+            healthyCor2(:,2) = healthyCor(2:2:rows); % post
+            
+            % 7, Outputs
+            DGI = DGI2;
+            cor = healthyCor2; 
+            
+            subject_id = zeros(rows/2,1); % subject ID's for each subject
+            for k = 1:rows/2
+                subject_id(k) = tr(2*k).subject_id;
+            end
+        end
         function list(cor,labels) % display correlation coefficients to the screen
             % 'cor' will always be 12x2 cell. first column is the
             % correlation matrices, 2nd column is the muscle name

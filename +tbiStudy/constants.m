@@ -6,6 +6,7 @@ classdef constants
       trialType = {'baseline', 'overground','preferred'}; % 'relaxedStanding', 'relaxedLying', 'checkMuscles'};
       status = {'completed','current','withdrawn'};  % possible statuses of each subject we bring in
       stimulation_level = {'unknown', 'active', 'control','N/A'}; % level on the PoNS devices, wont know until after completion of study collections (n/a for people who dont use the pons)
+      muscles = {'tibialisAnterior','gastrocnemius','soleus','vastusLateralis','rectusFemoris','semitendinosus'};
       
       % data files properties
       dataFolder = '/Users/samuelacuna_mini/Documents/_Research Local/_Data tbi_emg/';
