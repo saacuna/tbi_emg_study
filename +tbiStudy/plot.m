@@ -21,7 +21,7 @@ classdef plot
         legendPosition = [.4 .001 .2 .1] ; % normalized to figure : left, bottom, width, height
         transparentErrorBars = [1]; % 1 = transparent, 0 = opaque
         showErrorBars = [1]; % 1 = show them, 0 = hide
-        dgiPlotYAxisLimits = [0,1];
+        dgiPlotYAxisLimits = [-.2, 1]; %[0,1];
         dgiPlotXAxisLimits = [0,25];
         figureSize = {[5 5 20 10]} % units are centimeters, make sure figure handle knows that
     end
@@ -456,7 +456,7 @@ classdef plot
             errorbar(1:2,mean(DGI),std(DGI),'LineStyle','none')
             hold off
             xlim([0 3])
-            %ylim([0 30])
+            ylim([0 24])
             if h == 1 % draw star, if significant difference
                 sigstar([1,2])
             end

@@ -363,13 +363,13 @@ end
 %%%%%%%% if I need to switch sensors for left and right leg, do
 %%%%%%%% it here.
 % either loop for all muscles (j = 1:6) or choose indiviudal muscle (e.g. j = 4)
-%  for j = 4:5 %1:6; % 4; 
-%  emgc(j)=avgcycle(emgtime,emgdata(:,j),ax(2).time(hslp),10,50); %right leg muslces
-%  emgc(6+j)=avgcycle(emgtime,emgdata(:,6+j),ax(1).time(hsrp),10,50); % left leg muscles
-%  end
-%     disp(' ');
-%     disp('Switched accelerometer data for left and right legs, as they were switched during collection.')
-%     disp(' ');
+%   for j = 6; %4:5 %1:6; % 4; 
+%   emgc(j)=avgcycle(emgtime,emgdata(:,j),ax(2).time(hslp),10,50); %right leg muslces
+%   emgc(6+j)=avgcycle(emgtime,emgdata(:,6+j),ax(1).time(hsrp),10,50); % left leg muscles
+%   end
+%      disp(' ');
+%      disp('Switched accelerometer data for left and right legs, as they were switched during collection.')
+%      disp(' ');
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
