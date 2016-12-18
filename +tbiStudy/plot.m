@@ -21,8 +21,12 @@ classdef plot
         legendPosition = [.4 .001 .2 .1] ; % normalized to figure : left, bottom, width, height
         transparentErrorBars = [1]; % 1 = transparent, 0 = opaque
         showErrorBars = [1]; % 1 = show them, 0 = hide
-        dgiPlotYAxisLimits = [-.2, 1]; %[0,1];
+        dgiPlotYAxisLimits = [0, 1]; %[-.2,1];
         dgiPlotXAxisLimits = [0,25];
+        sotPlotYAxisLimits = [0, 1]; %[-.2,1];
+        sotPlotXAxisLimits = [0, 100];
+        sixmwtPlotYAxisLimits = [0, 1]; %[-.2,1];
+        sixmwtPlotXAxisLimits = [100, 550]; % THIS MIGHT CHANGE
         figureSize = {[5 5 20 10]} % units are centimeters, make sure figure handle knows that
     end
     
@@ -370,6 +374,166 @@ classdef plot
             % suptitle([muscleName ': DGI vs Healthy Correlation']);
             
         end
+        function baseline_DGIvsHealthy() % plots DGI vs healthy Correlation, baseline
+            
+            % calculate correlation, DGI, muscle labels
+            [DGI,healthyCor,labels] = tbiStudy.correlation.baseline_DGIvsHealthy();
+
+            % create figure
+            figure('Name','DGI vs Baseline Correlation')
+            set(gcf,'color','w');
+            
+            for j = 1:6 % right leg
+                subplot(6,2,2*j);
+                hold on
+                plot(DGI,healthyCor(:,j),'ko');
+                lsline; % least squares line
+                hold off
+                title(labels(j))
+                ylim(tbiStudy.plot.dgiPlotYAxisLimits);
+                xlim(tbiStudy.plot.dgiPlotXAxisLimits);
+            end
+            for j = 1:6 % left leg
+                subplot(6,2,2*j-1);
+                hold on
+                plot(DGI,healthyCor(:,6+j),'ko');
+                lsline; % least squares line
+                hold off
+                title(labels(6+j))
+                ylim(tbiStudy.plot.dgiPlotYAxisLimits);
+                xlim(tbiStudy.plot.dgiPlotXAxisLimits);
+            end
+            
+            % 7. create custom legend
+            %tbiStudy.plot.legend_prepost(3);
+            
+            % create title that goes over all the subplots
+            suptitle(['DGI vs Healthy Baseline Correlation']);
+        end
+        function baseline_SOTvsHealthy() % plots DGI vs healthy Correlation, baseline
+            
+            % calculate correlation, DGI, muscle labels
+            [SOT,healthyCor,labels] = tbiStudy.correlation.baseline_SOTvsHealthy();
+
+            % create figure
+            figure('Name','SOT vs Baseline Correlation')
+            set(gcf,'color','w');
+            
+            for j = 1:6 % right leg
+                subplot(6,2,2*j);
+                hold on
+                plot(SOT,healthyCor(:,j),'ko');
+                lsline; % least squares line
+                hold off
+                title(labels(j))
+                ylim(tbiStudy.plot.sotPlotYAxisLimits);
+                xlim(tbiStudy.plot.sotPlotXAxisLimits);
+            end
+            for j = 1:6 % left leg
+                subplot(6,2,2*j-1);
+                hold on
+                plot(SOT,healthyCor(:,6+j),'ko');
+                lsline; % least squares line
+                hold off
+                title(labels(6+j))
+                ylim(tbiStudy.plot.sotPlotYAxisLimits);
+                xlim(tbiStudy.plot.sotPlotXAxisLimits);
+            end
+            
+            % 7. create custom legend
+            %tbiStudy.plot.legend_prepost(3);
+            
+            % create title that goes over all the subplots
+            suptitle(['SOT vs Healthy Baseline Correlation']);
+        end
+        function baseline_sixMWTvsHealthy() % plots DGI vs healthy Correlation, baseline
+            
+            % calculate correlation, DGI, muscle labels
+            [sixMWT,healthyCor,labels] = tbiStudy.correlation.baseline_sixMWTvsHealthy();
+
+            % create figure
+            figure('Name','6MWT vs Baseline Correlation')
+            set(gcf,'color','w');
+            
+            for j = 1:6 % right leg
+                subplot(6,2,2*j);
+                hold on
+                plot(sixMWT,healthyCor(:,j),'ko');
+                lsline; % least squares line
+                hold off
+                title(labels(j))
+                ylim(tbiStudy.plot.sixmwtPlotYAxisLimits);
+                xlim(tbiStudy.plot.sixmwtPlotXAxisLimits);
+            end
+            for j = 1:6 % left leg
+                subplot(6,2,2*j-1);
+                hold on
+                plot(sixMWT,healthyCor(:,6+j),'ko');
+                lsline; % least squares line
+                hold off
+                title(labels(6+j))
+                ylim(tbiStudy.plot.sixmwtPlotYAxisLimits);
+                xlim(tbiStudy.plot.sixmwtPlotXAxisLimits);
+            end
+            
+            % 7. create custom legend
+            %tbiStudy.plot.legend_prepost(3);
+            
+            % create title that goes over all the subplots
+            suptitle(['6MWT vs Healthy Baseline Correlation']);
+        end
+        function baseline_vsHealthy() % plots metrics vs average healthy Correlation, baseline
+            fSize = 14;
+            
+            % calculate correlations
+            [DGI, SOT, sixMWT, cor, DGIcor, SOTcor, sixMWTcor, labels] = tbiStudy.correlation.baseline_vsHealthy();
+    
+            % DGI vs Average Healthy Baseline Correlation
+            figure('Name','DGI vs Average Healthy Baseline  Correlation')
+            set(gcf,'color','w');
+            plot(DGI,cor,'ko');
+            lsline; % least squares line
+            ylim(tbiStudy.plot.dgiPlotYAxisLimits);
+            xlim(tbiStudy.plot.dgiPlotXAxisLimits);
+            [x, y] = tbiStudy.plot.textCoords(tbiStudy.plot.dgiPlotXAxisLimits, tbiStudy.plot.dgiPlotYAxisLimits,0.1,0.9);
+            text(x,y,['R = ' num2str(round(DGIcor,2))],'FontSize',fSize);
+            %title(['DGI vs Average Healthy Baseline Correlation']);
+            title(['DGI vs EMG Correlation'],'FontSize',fSize);
+            ylabel('Correlation Coefficient (R)','FontSize',fSize);
+            xlabel('DGI Score','FontSize',fSize);
+            set(gca,'FontSize',fSize,'FontWeight','normal')
+            
+            % SOT vs Average Healthy Baseline Correlation
+            figure('Name','SOT vs Average Healthy Baseline  Correlation')
+            set(gcf,'color','w');
+            plot(SOT,cor,'ko');
+            lsline; % least squares line
+            ylim(tbiStudy.plot.sotPlotYAxisLimits);
+            xlim(tbiStudy.plot.sotPlotXAxisLimits);
+            [x, y] = tbiStudy.plot.textCoords(tbiStudy.plot.sotPlotXAxisLimits, tbiStudy.plot.sotPlotYAxisLimits,0.1,0.9);
+            text(x,y,['R = ' num2str(round(SOTcor,2))],'FontSize',fSize);
+            %title(['SOT vs Average Healthy Baseline Correlation']);
+            title(['SOT vs EMG Correlation'],'FontSize',fSize);
+            ylabel('Correlation Coefficient (R)','FontSize',fSize);
+            xlabel('SOT Score','FontSize',fSize);
+            set(gca,'FontSize',fSize,'FontWeight','normal')
+            
+            % sixMWT vs Average Healthy Baseline Correlation
+            figure('Name','6MWT vs Average Healthy Baseline  Correlation')
+            set(gcf,'color','w');
+            plot(sixMWT,cor,'ko');
+            lsline; % least squares line
+            ylim(tbiStudy.plot.sixmwtPlotYAxisLimits);
+            xlim(tbiStudy.plot.sixmwtPlotXAxisLimits);
+            [x, y] = tbiStudy.plot.textCoords(tbiStudy.plot.sixmwtPlotXAxisLimits, tbiStudy.plot.sixmwtPlotYAxisLimits,0.1,0.9);
+            text(x,y,['R = ' num2str(round(sixMWTcor,2))],'FontSize',fSize);
+            %title(['6MWT vs Average Healthy Baseline Correlation']);
+            title(['6MWT vs EMG Correlation'],'FontSize',fSize);
+            ylabel('Correlation Coefficient (R)','FontSize',fSize);
+            xlabel('Distance (ft)','FontSize',fSize);
+            set(gca,'FontSize',fSize,'FontWeight','normal')
+            
+        end
         function legend(labels) % append legend to EMG plots
             % create workaround custom legend, not the cleanest, but easier than
             % moving around handles from different classes
@@ -386,6 +550,11 @@ classdef plot
             h = legend(handle(:),labels);
             set(h,'Position',tbiStudy.plot.legendPosition);
             set(h,'Box','on','Orientation','horizontal','FontSize',12);
+        end
+        function [x, y] = textCoords(xLimits, yLimits,percentX,percentY)
+            % find spot to place text on the plot
+            x = percentX*(xLimits(2)-xLimits(1)) + xLimits(1);
+            y = percentY*(yLimits(2)-yLimits(1)) + yLimits(1);
         end
         function h = legend_prepost(legendNum) % eppend legend to pre-post plots
             

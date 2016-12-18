@@ -73,17 +73,30 @@ disp('conversion completed. now calculating emg data over average gait cycle....
 % calculate emg data over the average gate cycle
 calculationPlots = 0; % set to true if you want to see plots of intermediate calculations
 
-% rearrange data if sensor 1 is in place of sensor 8
-if (strcmp(emg(1).label,'L TIBIALIS ANTERIOR'))
-    temp = emg(1); % l tibialis anterior
-    for i = 1:6 % rearrange the right leg
+% % rearrange data if sensor 1 is in place of sensor 8
+% if (strcmp(emg(1).label,'L TIBIALIS ANTERIOR'))
+%     temp = emg(1); % l tibialis anterior
+%     for i = 1:6 % rearrange the right leg
+%         emg(i) = emg(i+1);
+%     end
+%     emg(7) = temp;
+%     disp(' ');
+%     disp('Rearranged Data because sensor 1 is in place of sensor 8.')
+%     disp(' ');
+% end
+
+% rearrange data if sensor 1 is in place of sensor 9
+if (strcmp(emg(1).label,'L GASTROCNEMIUS MEDIAL HEAD'))
+    temp = emg(1); % L GASTROCNEMIUS MEDIAL HEAD
+    for i = 1:7 % rearrange the right leg
         emg(i) = emg(i+1);
     end
-    emg(7) = temp;
+    emg(8) = temp;
     disp(' ');
-    disp('Rearranged Data because sensor 1 is in place of sensor 8.')
+    disp('Rearranged Data because sensor 1 is in place of sensor 9.')
     disp(' ');
 end
+
 
 [emgcyc, emgcycstd, emgcyclabel, emgcycfreq] = calcEmgCycle(emg, ax, ay, az, calculationPlots);
 disp('Successfully calculated EMG data for average gait cycle.')
@@ -99,6 +112,7 @@ tr(1).emgFreq = emgcycfreq;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % save file 
+%tr(1).filename = ['hyn' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType];
 tr(1).filename = ['tbi' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType];
 save([inpath tr.filename], 'tr');
 disp(['Trial Data saved as: ' tr.filename]);
@@ -170,7 +184,7 @@ function [emg, ax, ay, az] = load_emgworks(infile,inpath)
             while (line(1:5)~='Start')
                 jcolon=find(line==':');
                 line(jcolon(2)+6:jcolon(2)+10);
-                nch=nch+1;
+                nch=nch+1; % count number of data channels
                 ch(nch)= readhdr(line,fid,nch); 
                 if (ch(nch).npts>maxpts), maxpts=ch(nch).npts;  end
                 npts=npts+ch(nch).npts;
@@ -358,10 +372,11 @@ for j=1:6
     emgc(j)=avgcycle(emgtime,emgdata(:,j),ax(1).time(hsrp),10,50); %right leg muslces
     emgc(6+j)=avgcycle(emgtime,emgdata(:,6+j),ax(2).time(hslp),10,50); % left leg muscles
 end
+lumbar = avgcycle(ax(3).time,amagf(:,3),ax(1).time(hsrp),10,50); % lumbar, relative to left leg heel strike
 
 
 %%%%%%%% if I need to switch sensors for left and right leg, do
-%%%%%%%% it here.
+%%%%%%%% it here. ACTUALLY, DO IT ABOVE< WHEN YOU REARRANGE SENSORS.
 % either loop for all muscles (j = 1:6) or choose indiviudal muscle (e.g. j = 4)
 %   for j = 6; %4:5 %1:6; % 4; 
 %   emgc(j)=avgcycle(emgtime,emgdata(:,j),ax(2).time(hslp),10,50); %right leg muslces
@@ -385,6 +400,7 @@ emgcyc = normemg;
 emgcycstd = normemgstd;
 emgcyclabel = emgdatalabel;
 emgcycfreq = emg(1).freq;
+%lumbarcyc = lumbar;
 end
 function xc = avgcycle(time,x,tc,hcf,lcf)
 % xc = avgcycle(x,tc,hcf,lcf)

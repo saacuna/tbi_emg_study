@@ -90,10 +90,8 @@ classdef correlation
             tbiStudy.correlation.list(cor,labels);
         end
         function cor = healthyTrial(subject_id,testPoint,trialType) % correlation between specific trial and healthy subject
-            % FOR NOW, USeS  AN AGGREGATE HEALTHY TRIAL  AS SPECIFIED IN
-            % tbiStudy.constants.healthy, BUT IN FUTURE, WILL HAVE A
-            % DATABASE OF HEALTHY SUBJECTS, SO THIS WILL BE UPDATED TO
-            % REFLECT THAT
+            % USeS  AN AGGREGATE HEALTHY TRIAL  AS SPECIFIED IN
+            % tbiStudy.constants.healthy, 
             
             % cor = {corrCoeff matrices, muscleName}
             % example: tbiStudy.correlation.
@@ -122,10 +120,8 @@ classdef correlation
             tbiStudy.correlation.list(cor,labels);
         end
         function cor = healthy(tr) % correlation between given trial data and healthy subject
-            % FOR NOW, USeS  AN AGGREGATE HEALTHY TRIAL  AS SPECIFIED IN
-            % tbiStudy.constants.healthy, BUT IN FUTURE, WILL HAVE A
-            % DATABASE OF HEALTHY SUBJECTS, SO THIS WILL BE UPDATED TO
-            % REFLECT THAT
+            % USES  AN AGGREGATE HEALTHY TRIAL  AS SPECIFIED IN
+            % tbiStudy.constants.healthy, 
             
             % cor = {corrCoeff matrices, muscleName}
             % example: tbiStudy.correlation.
@@ -311,6 +307,162 @@ classdef correlation
             for k = 1:rows/2
                 subject_id(k) = tr(2*k).subject_id;
             end
+        end
+        function [DGI, cor, labels] = baseline_DGIvsHealthy() % DGI vs healthy Correlation, baseline only
+            
+            % 1. retrieve from database, using default values
+            sqlquery = ['select trials.* from trials, tbi_subjectsSummary_loadedTrials '...
+                'where (tbi_subjectsSummary_loadedTrials.subject_id = trials.subject_id) '...
+                'and (trials.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
+                'and trialType = "baseline" '... % default trialType
+                'and (testPoint = 1)']; % default Pre/Post window
+            tr = tbiStudy.loadSelectTrials(sqlquery);
+            [rows ~] = size(tr); % total rows
+            
+             % 2. find healthy correlation for each trial
+             healthyCor =  zeros(rows,12); % 12 muscles
+            for i = 1:rows
+                cor = tbiStudy.correlation.healthy(tr(i)); % calc correlation matrices for each muscle
+                for muscle = 1:12 
+                    healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                end
+            end
+            
+            % 3. pull the muscle labels
+            for i = 1:12
+            labels{i} = cor{i,2};
+            end
+            
+            % 4. find DGI that corresponds to each trial
+            sqlquery = ['select DGI.* from DGI, tbi_subjectsSummary_loadedTrials '...
+                'where (tbi_subjectsSummary_loadedTrials.subject_id = DGI.subject_id) '...
+                'and (DGI.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
+                'and (testPoint = 1)']; % default Pre/Post window
+            conn = database('', '', '', 'org.sqlite.JDBC', tbiStudy.constants.dbURL);
+            exec(conn,'PRAGMA foreign_keys=ON');
+            curs = exec(conn, sqlquery);
+            curs = fetch(curs);
+            DGI = curs.Data;
+            DGI = cell2mat(DGI(:,3));
+            close(curs);
+            close(conn);
+            
+
+            % 5. Now that we have our data, assemble data for plotting 
+            
+            % 6. outputs
+            DGI = DGI;
+            cor = healthyCor; % [nSubjects x 12 muscles]
+            % labels = labels; 
+        end
+        function [SOT, cor, labels] = baseline_SOTvsHealthy() % SOT vs healthy Correlation, baseline only
+            
+            % 1. retrieve from database, using default values
+            sqlquery = ['select trials.* from trials, tbi_subjectsSummary_loadedTrials '...
+                'where (tbi_subjectsSummary_loadedTrials.subject_id = trials.subject_id) '...
+                'and (trials.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
+                'and trialType = "baseline" '... % default trialType
+                'and (testPoint = 1)']; % default Pre/Post window
+            tr = tbiStudy.loadSelectTrials(sqlquery);
+            [rows ~] = size(tr); % total rows
+            
+             % 2. find healthy correlation for each trial
+             healthyCor =  zeros(rows,12); % 12 muscles
+            for i = 1:rows
+                cor = tbiStudy.correlation.healthy(tr(i)); % calc correlation matrices for each muscle
+                for muscle = 1:12 
+                    healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                end
+            end
+            
+            % 3. pull the muscle labels
+            for i = 1:12
+            labels{i} = cor{i,2};
+            end
+            
+            % 4. find DGI that corresponds to each trial
+            sqlquery = ['select SOT.* from SOT, tbi_subjectsSummary_loadedTrials '...
+                'where (tbi_subjectsSummary_loadedTrials.subject_id = SOT.subject_id) '...
+                'and (SOT.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
+                'and (testPoint = 1)']; % default Pre/Post window
+            conn = database('', '', '', 'org.sqlite.JDBC', tbiStudy.constants.dbURL);
+            exec(conn,'PRAGMA foreign_keys=ON');
+            curs = exec(conn, sqlquery);
+            curs = fetch(curs);
+            SOT = curs.Data;
+            SOT = cell2mat(SOT(:,3));
+            close(curs);
+            close(conn);
+            
+
+            % 5. Now that we have our data, assemble data for plotting 
+            
+            % 6. outputs
+            SOT = SOT;
+            cor = healthyCor; % [nSubjects x 12 muscles]
+            % labels = labels; 
+        end
+        function [sixMWT, cor, labels] = baseline_sixMWTvsHealthy() % SOT vs healthy Correlation, baseline only
+            
+            % 1. retrieve from database, using default values
+            sqlquery = ['select trials.* from trials, tbi_subjectsSummary_loadedTrials '...
+                'where (tbi_subjectsSummary_loadedTrials.subject_id = trials.subject_id) '...
+                'and (trials.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
+                'and trialType = "baseline" '... % default trialType
+                'and (testPoint = 1)']; % default Pre/Post window
+            tr = tbiStudy.loadSelectTrials(sqlquery);
+            [rows ~] = size(tr); % total rows
+            
+             % 2. find healthy correlation for each trial
+             healthyCor =  zeros(rows,12); % 12 muscles
+            for i = 1:rows
+                cor = tbiStudy.correlation.healthy(tr(i)); % calc correlation matrices for each muscle
+                for muscle = 1:12 
+                    healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                end
+            end
+            
+            % 3. pull the muscle labels
+            for i = 1:12
+            labels{i} = cor{i,2};
+            end
+            
+            % 4. find DGI that corresponds to each trial
+            sqlquery = ['select sixMWT.* from sixMWT, tbi_subjectsSummary_loadedTrials '...
+                'where (tbi_subjectsSummary_loadedTrials.subject_id = sixMWT.subject_id) '...
+                'and (sixMWT.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
+                'and (testPoint = 1)']; % default Pre/Post window
+            conn = database('', '', '', 'org.sqlite.JDBC', tbiStudy.constants.dbURL);
+            exec(conn,'PRAGMA foreign_keys=ON');
+            curs = exec(conn, sqlquery);
+            curs = fetch(curs);
+            sixMWT = curs.Data;
+            sixMWT = cell2mat(sixMWT(:,3));
+            close(curs);
+            close(conn);
+            
+
+            % 5. Now that we have our data, assemble data for plotting 
+            
+            % 6. outputs
+            sixMWT = sixMWT;
+            cor = healthyCor; % [nSubjects x 12 muscles]
+            % labels = labels; 
+        end
+        function [DGI, SOT, sixMWT, cor, DGIcor, SOTcor, sixMWTcor, labels] = baseline_vsHealthy() % metrics vs average correlation to healthy, baseline only
+            [DGI, cor, labels] = tbiStudy.correlation.baseline_DGIvsHealthy();
+            [SOT] = tbiStudy.correlation.baseline_SOTvsHealthy();
+            [sixMWT] = tbiStudy.correlation.baseline_sixMWTvsHealthy(); 
+            
+            % combine the correlations for all the muscles for average value
+            cor = mean(cor,2);
+            
+            % compute correlation of METRIC vs Average Muscle Correlation
+            data = [DGI,SOT,sixMWT, cor];
+            coef = corrcoef(data);
+            DGIcor = coef(1,4);
+            SOTcor = coef(2,4);
+            sixMWTcor = coef(3,4);
         end
         function list(cor,labels) % display correlation coefficients to the screen
             % 'cor' will always be 12x2 cell. first column is the
