@@ -671,6 +671,28 @@ classdef plot
             end
             legend('Original','Reconstructed');
         end
+        function walkDMC_baseline() % walkDMC metric, compares healthy to TBI subjects
+            
+            walkDMC_TBI = tbiStudy.synergies.walkDMC();
+            walkDMC_healthy = tbiStudy.synergies.walkDMC_healthy();
+            
+            figure
+            plot(walkDMC_TBI,'bO'); % TBI
+            hold on
+            plot(walkDMC_healthy,'r^'); % healthy
+            plot(xlim,[100 100], '--k'); % average healthy
+            plot(xlim,[110 110], ':k'); % +1 std healthy
+            plot(xlim,[90 90], ':k'); % -1 std healthy
+            hold off
+            text(35,101,'AVG Healthy')
+            text(35,111,'+1 STD Healthy')
+            text(35,91,'-1 STD Healthy')
+            title('walk-DMC')
+            xlabel('Subject Number')
+            ylabel('walk-DMC');
+            legend('TBI','healthy Control')
+            
+        end
     end
 
 end

@@ -72,8 +72,8 @@ classdef load
                 sn = sprintf('%02d',i);
                 dataFileLocation = [ tbiStudy.constants.healthyFolder 'HYN' sn '/'];
                 trialType = tbiStudy.constants.trialType{trialTypeNumber};
-                filename = ['hyn' sn '_tp00_' trialType '.mat'];
-                load([dataFileLocation filename]);
+                filename = ['hyn' sn '_tp00_' trialType];
+                load([dataFileLocation filename '.mat']);
                 tr_temp = [tr_temp; tr];
             end
             tr = tr_temp;
