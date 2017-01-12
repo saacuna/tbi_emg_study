@@ -10,7 +10,9 @@ classdef constants
       
       % data files properties
       dataFolder = '/Users/samuelacuna_mini/Documents/_Local Data/data tbi_emg_study/';
-      healthy =  '/Users/samuelacuna_mini/Documents/_Local Data/data tbi_emg_study/Healthy Controls/HYN_all/hyn_all_01_tp00_treadmill28.mat';
+      healthyFolder = '/Users/samuelacuna_mini/Documents/_Local Data/data tbi_emg_study/Healthy Controls/';
+      healthy =  '/Users/samuelacuna_mini/Documents/_Local Data/data tbi_emg_study/Healthy Controls/HYN_all/hyn_all_01_tp00_treadmill22.mat';
+      nHealthy = 20; %number of healthy controls
             
       % database connection properties
       dbURL = 'jdbc:sqlite:/Users/samuelacuna_mini/Documents/_Local Data/data tbi_emg_study/emg_tbi_database.db';

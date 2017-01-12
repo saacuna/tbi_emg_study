@@ -74,7 +74,7 @@ disp(['Trial Data saved as: ' hy(1).filename]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot trial
-tbiStudy.plot.single(tr);
+tbiStudy.plot.single(hy);
 end
 function trialType = setTrialType()
 selection = listdlg('Name','Trial Type','PromptString','Select Trial Type:','SelectionMode','single','ListString',tbiStudy.constants.trialType,'ListSize',[150 75]);

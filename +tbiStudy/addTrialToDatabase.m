@@ -49,6 +49,7 @@ data = {tr.subject_id, tr.testPoint, tr.trialType, dataFileLocation, tr.filename
 conn = database('', '', '', 'org.sqlite.JDBC', tbiStudy.constants.dbURL);
 exec(conn,'PRAGMA foreign_keys=ON');
 datainsert(conn,'trials',tbiStudy.constants.trials_columnNames,data);
+%datainsert(conn,'trials_healthy',tbiStudy.constants.trials_columnNames,data);
 close(conn);
 disp([tr.filename ' successfully added to the database']);
 end

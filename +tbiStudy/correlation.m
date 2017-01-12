@@ -17,7 +17,7 @@ classdef correlation
             
             % retrieve from database
             sqlquery = ['select * from trials where subject_id = ' num2str(subject_id) ' and testPoint = ' num2str(testPoint)];
-            tr = tbiStudy.loadSelectTrials(sqlquery);
+            tr = tbiStudy.load.trials(sqlquery);
             
             assert(length(tr) >=2, 'Must have at least 2 trials in testPoint to perform correlations');
             
@@ -42,7 +42,7 @@ classdef correlation
             if strcmp(trialType,'preferred');
                 sqlquery = ['select * from trials where subject_id = ' num2str(subject_id) ' and (trialType = "preferred" or (testPoint = 1 and trialType = "baseline"))'];
             end
-            tr = tbiStudy.loadSelectTrials(sqlquery);
+            tr = tbiStudy.load.trials(sqlquery);
             
             assert(length(tr) >=2, ['Must have at least 2 testPoints for trialType "' trialType '" to perform correlations']);
             
@@ -74,7 +74,7 @@ classdef correlation
             % retrieve from database
             if strcmp(trialType,'preferred') && (testPoint == 1); trialType = 'baseline'; end
             sqlquery = ['select * from trials where (subject_id = ' num2str(subject_id1) ' or subject_id = ' num2str(subject_id2) ') and testPoint = ' num2str(testPoint) ' and trialType = "' trialType '"'];
-            tr = tbiStudy.loadSelectTrials(sqlquery);
+            tr = tbiStudy.load.trials(sqlquery);
             
             assert(length(tr) >=2, 'The second subject must be in the database');
             
@@ -107,7 +107,7 @@ classdef correlation
             % retrieve one trial from database
             if strcmp(trialType,'preferred') && (testPoint == 1); trialType = 'baseline'; end
             sqlquery = ['select * from trials where subject_id = ' num2str(subject_id) ' and testPoint = ' num2str(testPoint) ' and trialType = "' trialType '"'];
-            tr = tbiStudy.loadSelectTrials(sqlquery);
+            tr = tbiStudy.load.trials(sqlquery);
             
             % calculate correlation to healthy
             cor = tbiStudy.correlation.healthy(tr);
@@ -144,7 +144,7 @@ classdef correlation
                 'and (trials.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
                 'and trialType = "baseline" '... % default trialType
                 'and (testPoint = 1 or testPoint = 2)']; % default Pre/Post window
-            tr = tbiStudy.loadSelectTrials(sqlquery);
+            tr = tbiStudy.load.trials(sqlquery);
             
             % observe that all the odd rows are PRE and all the even rows
             % are POST
@@ -224,7 +224,7 @@ classdef correlation
                 'and (totalNumTestPoints > 1) '...
                 'and trials.trialType = "baseline" '... % default trialType
                 'and (trials.testPoint = 1 or trials.testPoint = 2)']; % default Pre/Post window
-            tr = tbiStudy.loadSelectTrials(sqlquery);
+            tr = tbiStudy.load.trials(sqlquery);
             % observe that all the odd rows are PRE and all the even rows
             % are POST
             [rows, ~] = size(tr); % total rows
@@ -316,7 +316,7 @@ classdef correlation
                 'and (trials.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
                 'and trialType = "baseline" '... % default trialType
                 'and (testPoint = 1)']; % default Pre/Post window
-            tr = tbiStudy.loadSelectTrials(sqlquery);
+            tr = tbiStudy.load.trials(sqlquery);
             [rows ~] = size(tr); % total rows
             
              % 2. find healthy correlation for each trial
@@ -363,7 +363,7 @@ classdef correlation
                 'and (trials.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
                 'and trialType = "baseline" '... % default trialType
                 'and (testPoint = 1)']; % default Pre/Post window
-            tr = tbiStudy.loadSelectTrials(sqlquery);
+            tr = tbiStudy.load.trials(sqlquery);
             [rows ~] = size(tr); % total rows
             
              % 2. find healthy correlation for each trial
@@ -410,7 +410,7 @@ classdef correlation
                 'and (trials.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
                 'and trialType = "baseline" '... % default trialType
                 'and (testPoint = 1)']; % default Pre/Post window
-            tr = tbiStudy.loadSelectTrials(sqlquery);
+            tr = tbiStudy.load.trials(sqlquery);
             [rows ~] = size(tr); % total rows
             
              % 2. find healthy correlation for each trial
@@ -459,7 +459,7 @@ classdef correlation
             
             % compute correlation of METRIC vs Average Muscle Correlation
             data = [DGI,SOT,sixMWT, cor];
-            coef = corrcoef(data);
+            [coef, P] = corrcoef(data);
             DGIcor = coef(1,4);
             SOTcor = coef(2,4);
             sixMWTcor = coef(3,4);
