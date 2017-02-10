@@ -36,20 +36,30 @@ classdef synergies
             syn.VnotAF = 1-syn.VAF;
             [syn.VAFcond, syn.VAFmus, syn.VAF2] = tbiStudy.synergies.funur(A,syn.W,syn.C); %calculate VAF of reconstruction
         end
-        
-        
         function syn = calcSynergies_multiple(tr,n)
             % INPUTS:
             % tr = collection of trial data
             %  n = number of synergies to solve for
             
-            for i = 1:length(tr);
-                A = tr(i).emgData'; % create A matrix [m x t]
-                syn_temp = tbiStudy.synergies.calcSynergies(A,n);
-                syn_temp.subject_id = tr(i).subject_id;
-                syn_temp.testPoint = tr(i).testPoint;
-                syn_temp.trialType = tr(i).trialType;
-                syn(i) = syn_temp;
+            for i = 1:length(tr)
+                
+                % right leg
+                A = tr(i).emgData(:,1:6)'; % create A matrix [m x t]
+                syn_right = tbiStudy.synergies.calcSynergies(A,n);
+                syn_right.AStd = tr(i).emgData(:,1:6)';
+                
+                % left leg
+                A = tr(i).emgData(:,7:12)'; % create A matrix [m x t]
+                syn_left = tbiStudy.synergies.calcSynergies(A,n);
+                syn_left.AStd = tr(i).emgData(:,7:12)';
+                
+                % combine into synergy structure
+                syn(i).subject_id = tr(i).subject_id;
+                syn(i).testPoint = tr(i).testPoint;
+                syn(i).trialType = tr(i).trialType;
+                syn(i).n = n; % the number of synergies
+                syn(i).rightLeg = syn_right;
+                syn(i).leftLeg = syn_left;
             end
             syn = syn';
         end
@@ -81,16 +91,21 @@ classdef synergies
             
             % 2. solve for synergies
             syn = tbiStudy.synergies.calcSynergies_multiple(tr,n);
-            disp(['TBI synergies calculated: ' num2str(length(syn))]);
+            disp(['TBI synergies calculated: ' num2str(length(syn)) ' (' num2str(2*length(syn)) ' total)']);
             
             % 3. solve for VAF of healthy control synergies
             [~, ~, VnotAF1_avg, VnotAF1_std] = tbiStudy.synergies.VAF_healthy(n,healthyTrialTypeNumber);
             
             % 4. solve for walk-DMC score, Steele 2015
-            walkDMC = zeros(length(syn),1);
+            walkDMC = zeros(length(syn),2); % [left, right]
             for i = 1:length(syn)
-                walkDMC(i) = 100 + 10*((syn(i).VnotAF - VnotAF1_avg)/(VnotAF1_std)); % Steele 2015
-                [syn(i).walkDMC] = walkDMC(i);
+                % left leg
+                walkDMC(i,1) = 100 + 10*((syn(i).leftLeg.VnotAF - VnotAF1_avg)/(VnotAF1_std)); % Steele 2015
+                [syn(i).leftLeg.walkDMC] = walkDMC(i,1);
+                
+                % right leg
+                walkDMC(i,2) = 100 + 10*((syn(i).rightLeg.VnotAF - VnotAF1_avg)/(VnotAF1_std)); % Steele 2015
+                [syn(i).rightLeg.walkDMC] = walkDMC(i,2);
             end
         end
         function [walkDMC, syn] = walkDMC_healthy(healthyTrialTypeNumber)
@@ -104,10 +119,15 @@ classdef synergies
             [~, ~, VnotAF1_avg, VnotAF1_std, syn] = tbiStudy.synergies.VAF_healthy(n,healthyTrialTypeNumber);
             
             % solve for walk-DMC score, Steele 2015
-            walkDMC = zeros(length(syn),1);
+            walkDMC = zeros(length(syn),2); % [left, right]
             for i = 1:length(syn)
-                walkDMC(i) = 100 + 10*((syn(i).VnotAF - VnotAF1_avg)/(VnotAF1_std)); % Steele 2015
-                [syn(i).walkDMC] = walkDMC(i);
+                % left leg
+                walkDMC(i,1) = 100 + 10*((syn(i).leftLeg.VnotAF - VnotAF1_avg)/(VnotAF1_std)); % Steele 2015
+                [syn(i).leftLeg.walkDMC] = walkDMC(i,1);
+                
+                % right leg
+                walkDMC(i,2) = 100 + 10*((syn(i).rightLeg.VnotAF - VnotAF1_avg)/(VnotAF1_std)); % Steele 2015
+                [syn(i).rightLeg.walkDMC] = walkDMC(i,2);
             end
         end
         function syn = calcHealthySynergies(n,trialTypeNumber)
@@ -116,9 +136,59 @@ classdef synergies
             % trialTypeNumber = number specifying which trialtype (see tbiStudy.constants.trialType)
             tr = tbiStudy.load.healthy(trialTypeNumber);% load healthy trial data
             syn = tbiStudy.synergies.calcSynergies_multiple(tr,n); % calculate healthy synergies
-            disp(['Healthy control synergies calculated: ' num2str(length(syn))]);
+            disp(['Healthy control synergies calculated: ' num2str(length(syn)) ' (' num2str(2*length(syn)) ' total)']);
         end
-        function [VAF_avg, VAF_std, VnotAF_avg, VnotAF_std, syn] = VAF_healthy(n,trialTypeNumber) % average Variance Not Accounted For, healthy controls
+        function [VAF_avg, VAF_std, VAF_avg_healthy, VAF_std_healthy, n, synergies, synergies_healthy] = VAF_varied(testPoint,trialType,healthyTrialTypeNumber)
+            % INPUTS:
+            % testPoint = testPoint number
+            % trialType = name of trial that TBI subject underwent
+            % healthyTrialTypeNumber = number specifying which trialtype
+            %                          for healthy control data
+            %                          (see tbiStudy.constants.trialType)
+            
+            n = 1:5; % solve for multiple synergies
+            
+            % specify defaults
+            if nargin < 2
+                trialType = 'baseline';
+                healthyTrialTypeNumber = 4;
+            end
+            if nargin < 1
+                testPoint = 1;
+            end
+            
+            % display parameters
+            disp(['Using TBI trialType: ' trialType ', and healthy control trialType: ' tbiStudy.constants.trialType{healthyTrialTypeNumber}]);
+            
+            % 1. retrieve from database
+            if strcmp(trialType,'preferred') && (testPoint == 1); trialType = 'baseline'; end
+            sqlquery = ['select * from trials where testPoint = ' num2str(testPoint) ' and trialType = "' trialType '"'];
+            tr = tbiStudy.load.trials(sqlquery);
+            
+            % 2. solve for multiple synergies
+            synergies = cell(length(n),1);
+            VAF_avg = zeros(length(n),1);
+            VAF_std = zeros(length(n),1);
+            for i = n
+                syn = tbiStudy.synergies.calcSynergies_multiple(tr,i);
+                synergies{i} = [syn.leftLeg syn.rightLeg];
+                disp(['For n = ' num2str(i) ', TBI synergies calculated: ' num2str(length(synergies{i}))]);
+                VAF_avg(i) = mean([synergies{i}.VAF]);
+                VAF_std(i) =  std([synergies{i}.VAF]);
+            end
+            
+            % 3. solve for healthy synergies
+            synergies_healthy = cell(length(n),1);
+            VAF_avg_healthy = zeros(length(n),1);
+            VAF_std_healthy = zeros(length(n),1);
+            for i = n
+                disp(['For n = ' num2str(i) ',']);
+                [VAF_avg_healthy(i), VAF_std_healthy(i),~,~,syn_healthy] = tbiStudy.synergies.VAF_healthy(i,healthyTrialTypeNumber);
+                synergies_healthy{i} = syn_healthy;
+            end
+            
+        end
+        function [VAF_avg, VAF_std, VnotAF_avg, VnotAF_std, syn_all] = VAF_healthy(n,trialTypeNumber) % average Variance Not Accounted For, healthy controls
             % INPUTS:
             %               n = number of synergies to solve for
             % trialTypeNumber = number specifying which trialtype (see tbiStudy.constants.trialType)
@@ -132,10 +202,11 @@ classdef synergies
             % note: VnotAF_std = std(1-VAF) = std(VAF) = VAF_std
             
             syn = tbiStudy.synergies.calcHealthySynergies(n,trialTypeNumber);
-            VAF_avg = mean([syn.VAF]); 
-            VAF_std = std([syn.VAF]);  
-            VnotAF_avg = mean([syn.VnotAF]);
-            VnotAF_std = std([syn.VnotAF]); 
+            syn_all = [syn.leftLeg syn.rightLeg];
+            VAF_avg = mean([syn_all.VAF]); 
+            VAF_std = std([syn_all.VAF]);  
+            VnotAF_avg = mean([syn_all.VnotAF]);
+            VnotAF_std = std([syn_all.VnotAF]); 
         end
         function [A,W,C] = generateTestSignals(m,n)
             % this function is just to test the accuracy of my synergy
