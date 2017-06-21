@@ -1,4 +1,4 @@
-function tr = processEMGtrial(varargin)
+function tr = processEMGtrial()
 % Filename: processEMGtrial.m
 % Author:   Samuel Acuna
 % Date:     24 May 2016
@@ -14,19 +14,16 @@ function tr = processEMGtrial(varargin)
 % This puts the processed Matlab file in the same location as the original
 % .txt file
 % 
-% if I need to switch select sensors for left and right leg, see section in
-% calcEmgCycle function below
 %
 % Usage:
 %       tr = tbiStudy.processEMGtrial();
 %
-% optional: insert this trial into the database after processing
-%       tr = tbiStudy.processEMGtrial(1);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % load EMG data txt file
 disp('Select .txt EMG data file');
-[infile, inpath]=uigetfile('*.txt','Select input file',tbiStudy.constants.dataFolder);
+dataFolder = '/Users/samuel/Documents/data tbi_emg_study/'; % mac formatting. Might need to Change to windows style.
+[infile, inpath]=uigetfile('*.txt','Select input file',dataFolder);
 if infile == 0
     error('Canceled. No file selected');
 end
@@ -36,24 +33,10 @@ disp(['Selected: ' infile ]);
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % setup empty trial structure
 tr= struct(...
-    'subject_id',[],...
-    'testPoint',[],...
-    'trialType',[],...
-    'filename',[],...
-    'emgData',{},...
-    'emgStd',{},...
-    'emgLabel',{},...
-    'emgFreq',[]);
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% specify trial information
-tr(1).subject_id= setSubjectID();
-tr(1).testPoint = setTestPoint();
-tr(1).trialType = setTrialType();
-
-
+    'emg',{},...    % emg data
+    'ax',{},...		% accelerometer data, x 
+    'ay',{},...		% accelerometer data, y
+    'az',{});		% accelerometer data, z 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -65,97 +48,49 @@ try
 catch
     error('could not load emgworks file. Something went wrong in the load_emgworks function.');
 end
-disp('conversion completed. now calculating emg data over average gait cycle....')
 
+% save raw data to structure
+tr(1).emg = emg;
+tr(1).ax = ax;
+tr(1).ay = ay;
+tr(1).az = az;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% calculate emg data over the average gate cycle
-calculationPlots = 0; % set to true if you want to see plots of intermediate calculations
+% OPTIONAL: calculate emg data over the average gait cycle. This also
+% FILTERS the data.
+if 1 % change to 0 or 1 to activate this function
+	
+	calculationPlots = 1; % set to true if you want to see plots of intermediate calculations
+	
+	[emgcyc, emgcycstd, emgcyclabel, emgcycfreq] = calcEmgCycle(emg, ax, ay, az, calculationPlots);
 
-% % rearrange data if sensor 1 is in place of sensor 8
-% if (strcmp(emg(1).label,'L TIBIALIS ANTERIOR'))
-%     temp = emg(1); % l tibialis anterior
-%     for i = 1:6 % rearrange the right leg
-%         emg(i) = emg(i+1);
-%     end
-%     emg(7) = temp;
-%     disp(' ');
-%     disp('Rearranged Data because sensor 1 is in place of sensor 8.')
-%     disp(' ');
-% end
+	% save to structure
+	tr(1).emgcyc = emgcyc;
+	tr(1).emgcycstd = emgcycstd;
+	tr(1).emgcyclabel = emgcyclabel;
+	tr(1).emgcycfreq = emgcycfreq;
+	
+	disp('Successfully calculated EMG data for average gait cycle.')
 
-% rearrange data if sensor 1 is in place of sensor 9
-if (strcmp(emg(1).label,'L GASTROCNEMIUS MEDIAL HEAD'))
-    temp = emg(1); % L GASTROCNEMIUS MEDIAL HEAD
-    for i = 1:7 % rearrange the right leg
-        emg(i) = emg(i+1);
-    end
-    emg(8) = temp;
-    disp(' ');
-    disp('Rearranged Data because sensor 1 is in place of sensor 9.')
-    disp(' ');
 end
-
-
-[emgcyc, emgcycstd, emgcyclabel, emgcycfreq] = calcEmgCycle(emg, ax, ay, az, calculationPlots);
-disp('Successfully calculated EMG data for average gait cycle.')
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% construct emg data
-tr(1).emgData = emgcyc;
-tr(1).emgStd = emgcycstd;
-tr(1).emgLabel = emgcyclabel;
-tr(1).emgFreq = emgcycfreq;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % save file 
-%tr(1).filename = ['hyn' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType];
-tr(1).filename = ['tbi' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType];
-save([inpath tr.filename], 'tr');
-disp(['Trial Data saved as: ' tr.filename]);
+pattern = '.txt';
+replacement = '';
+filename = regexprep(infile,pattern,replacement); % remove .txt from input file
+filename = [filename '_processed']; % might want to change this to something more creative
+save([inpath filename], 'tr');
+disp(['Trial Data saved as: ' filename]);
 disp(['in folder: ' inpath]);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% plot trial
-tbiStudy.plot.single(tr);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% optionally, insert this trial into the database
-if nargin > 0
-    if varargin{1} == 1
-        tbiStudy.addTrialToDatabase(tr,inpath);
-    end
-end
 end
 
 
 % processing functions
-function trialType = setTrialType()
-selection = listdlg('Name','Trial Type','PromptString','Select Trial Type:','SelectionMode','single','ListString',tbiStudy.constants.trialType,'ListSize',[150 75]);
-if isempty(selection); error('Must specify trial type'); end; % user canceled.
-trialType = tbiStudy.constants.trialType{selection};
-end
-function testPoint = setTestPoint()
-TPchoices = num2str(cell2mat(tbiStudy.constants.testPoint)');
-selection = listdlg('Name','Test Point','PromptString','Select Test Point:','SelectionMode','single','ListString',TPchoices,'ListSize',[150 75]);
-if isempty(selection); error('Must specify test point'); end; % user canceled.
-testPoint = tbiStudy.constants.testPoint{selection};
-end
-function subject_id = setSubjectID()
-ID = inputdlg('Subject ID Number:','Subject ID Number',[1 60],{'01'});
-try
-    ID = str2num(ID{1});
-catch
-    error('Must specify numeric subject ID');
-end;
-subject_id = ID;
-end
 function [emg, ax, ay, az] = load_emgworks(infile,inpath)
             %   [emg,ax,ay,az]=load_emgworks(infile,inpath)
-            %   LOAD_EMGWORKS is used to open a csv formateed data file generated by the emgworks
+            %   LOAD_EMGWORKS is used to open a txt formateed data file generated by the emgworks
             %   software
             %
             %   Inputs
@@ -229,38 +164,13 @@ function [emg, ax, ay, az] = load_emgworks(infile,inpath)
             jemg=[]; jax=[]; jay=[]; jaz=[];
             for i=1:nch
                 if (ch(i).sensor < 14) % emg only for sensors 1-13
-                    if strcmp('EMG',ch(i).type); jemg=[jemg i]; end
+                    if strmatch('EMG',ch(i).type); jemg=[jemg i]; end
                 else % acceleration only for sensors 14-16
-                    if strcmp('ACC X',ch(i).type); jax=[jax i]; end
-                    if strcmp('ACC Y',ch(i).type); jay=[jay i]; end
-                    if strcmp('ACC Z',ch(i).type); jaz=[jaz i]; end
+                    if strmatch('ACC X',ch(i).type); jax=[jax i]; end
+                    if strmatch('ACC Y',ch(i).type); jay=[jay i]; end
+                    if strmatch('ACC Z',ch(i).type); jaz=[jaz i]; end
                 end
-                               
-                % 
-                % % OPTIONAL WORKAROUND: if accleration data on R & L
-                % % achilles is missing. not ideal, but we can use Tib Ant
-                % % accelerometer as a workaround fix. Comment out above
-                % % version of code and use this one:
-                % % UPDATE: this doesnt really work. If you run this
-                % % version and compare to original, it looks very
-                % % different. Almost unusable
-                % 
-                % if (ch(i).sensor < 14) % emg only for sensors 1-13
-                %     if strcmp('EMG',ch(i).type); jemg=[jemg i]; end
-                % end
-                % 
-                % if (strcmp(ch(i).label, 'R TIBIALIS ANTERIOR') || strcmp(ch(i).label, 'L TIBIALIS ANTERIOR') || ch(i).sensor == 16)
-                %     if strcmp('ACC X',ch(i).type); jax=[jax i]; end
-                %     if strcmp('ACC Y',ch(i).type); jay=[jay i]; end
-                %     if strcmp('ACC Z',ch(i).type); jaz=[jaz i]; end
-                % end
-                % 
-                % END OPTIONAL WORKAROUND
             end
-            
-            % variable 'data' looks like this: 8 signals * 15 channels = 120 columns, 
-            % the columns are: [ EMG time, EMG data, ACC time, ACC X, ACC time, ACC Y, ACC time, ACC Z ] * 15
-            
             file=[inpath infile];
             emg=ch(jemg);
             for i=1:length(emg); emg(i).file=file; emg(i).time=data(1:emg(i).npts,jemg(i)*2-1);   emg(i).data=data(1:emg(i).npts,jemg(i)*2); end
@@ -275,33 +185,40 @@ function [emg, ax, ay, az] = load_emgworks(infile,inpath)
             fclose(fid);
             
 end
+
+
+
 function hdr = readhdr(line,fid,nch)
-position = ftell(fid);
-jcolon=find(line==':');
-hdr.label=sscanf(line(jcolon(1)+1:jcolon(2)-1),'%s%c');
-hdr.type=sscanf(line(jcolon(2)+6:jcolon(3)-1),'%s%c');
-if strmatch('EMG',hdr.type(1:3)) hdr.sensor=sscanf(hdr.type(4:end),'%d');  hdr.type=hdr.type(1:3); end
-if strmatch('ACC',hdr.type(1:3)) hdr.sensor=sscanf(hdr.type(6:end),'%d');  hdr.type=hdr.type(1:5);   end
-hdr.freq=sscanf(line(jcolon(3)+1:end),'%f');
-hdr.npts=sscanf(line(jcolon(4)+1:end),'%f');
-hdr.xstart=sscanf(line(jcolon(5)+1:end),'%f');
-hdr.unit=sscanf(line(jcolon(6)+1:end),'%s');
-hdr.domainunit=sscanf(line(jcolon(7)+1:end),'%s');
-n=0;
-while(n<nch)
-    line=fgetl(fid);
-    if strmatch('System',line);
-        n=n+1;
-    end
+	position = ftell(fid);
+	jcolon=find(line==':');
+	hdr.label=sscanf(line(jcolon(1)+1:jcolon(2)-1),'%s%c');
+	hdr.type=sscanf(line(jcolon(2)+6:jcolon(3)-1),'%s%c');
+	if strmatch('EMG',hdr.type(1:3)) hdr.sensor=sscanf(hdr.type(4:end),'%d');  hdr.type=hdr.type(1:3); end
+	if strmatch('ACC',hdr.type(1:3)) hdr.sensor=sscanf(hdr.type(6:end),'%d');  hdr.type=hdr.type(1:5);   end
+	hdr.freq=sscanf(line(jcolon(3)+1:end),'%f');
+	hdr.npts=sscanf(line(jcolon(4)+1:end),'%f');
+	hdr.xstart=sscanf(line(jcolon(5)+1:end),'%f');
+	hdr.unit=sscanf(line(jcolon(6)+1:end),'%s');
+	hdr.domainunit=sscanf(line(jcolon(7)+1:end),'%s');
+	n=0;
+	while(n<nch)
+	    line=fgetl(fid);
+	    if strmatch('System',line);
+	        n=n+1;
+	    end
+	end
+	jcolon=find(line==':'); hdr.sysgain=sscanf(line(jcolon+1:end),'%f');
+	line=fgetl(fid);    jcolon=find(line==':'); hdr.adgain=sscanf(line(jcolon+1:end),'%f');
+	line=fgetl(fid);    jcolon=find(line==':'); hdr.bitres=sscanf(line(jcolon+1:end),'%f');
+	line=fgetl(fid);    jcolon=find(line==':');	hdr.bias=sscanf(line(jcolon+1:end),'%f');
+	line=fgetl(fid);    jcolon=find(line==':');	hdr.hpcutoff=sscanf(line(jcolon+1:end),'%f');
+	line=fgetl(fid);    jcolon=find(line==':');	hdr.lpcutoff=sscanf(line(jcolon+1:end),'%f');
+	fseek(fid,position,'bof');
 end
-jcolon=find(line==':'); hdr.sysgain=sscanf(line(jcolon+1:end),'%f');
-line=fgetl(fid);    jcolon=find(line==':'); hdr.adgain=sscanf(line(jcolon+1:end),'%f');
-line=fgetl(fid);    jcolon=find(line==':'); hdr.bitres=sscanf(line(jcolon+1:end),'%f');
-line=fgetl(fid);    jcolon=find(line==':');	hdr.bias=sscanf(line(jcolon+1:end),'%f');
-line=fgetl(fid);    jcolon=find(line==':');	hdr.hpcutoff=sscanf(line(jcolon+1:end),'%f');
-line=fgetl(fid);    jcolon=find(line==':');	hdr.lpcutoff=sscanf(line(jcolon+1:end),'%f');
-fseek(fid,position,'bof');
-end
+
+
+
+
 function [emgcyc, emgcycstd, emgcyclabel, emgcycfreq] = calcEmgCycle(emg, ax, ay, az, plots)
 % this function takes the loaded raw emg data, and calculates
 % the data for the average emg for the gait cycle. this is a much smaller
@@ -400,17 +317,6 @@ end
 lumbar = avgcycle(ax(3).time,amagf(:,3),ax(1).time(hsrp),10,50); % lumbar, relative to left leg heel strike
 
 
-%%%%%%%% if I need to switch sensors for left and right leg, do
-%%%%%%%% it here. ACTUALLY, DO IT ABOVE< WHEN YOU REARRANGE SENSORS.
-% either loop for all muscles (j = 1:6) or choose indiviudal muscle (e.g. j = 4)
-%   for j = 6; %4:5 %1:6; % 4; 
-%   emgc(j)=avgcycle(emgtime,emgdata(:,j),ax(2).time(hslp),10,50); %right leg muslces
-%   emgc(6+j)=avgcycle(emgtime,emgdata(:,6+j),ax(1).time(hsrp),10,50); % left leg muscles
-%   end
-%      disp(' ');
-%      disp('Switched accelerometer data for left and right legs, as they were switched during collection.')
-%      disp(' ');
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Normalize the EMG data
@@ -427,6 +333,8 @@ emgcyclabel = emgdatalabel;
 emgcycfreq = emg(1).freq;
 %lumbarcyc = lumbar;
 end
+
+
 function xc = avgcycle(time,x,tc,hcf,lcf)
 % xc = avgcycle(x,tc,hcf,lcf)
 npts=101;

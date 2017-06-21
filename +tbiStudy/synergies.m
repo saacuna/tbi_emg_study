@@ -188,7 +188,7 @@ classdef synergies
             end
             
         end
-        function [VAF_avg, VAF_std, VnotAF_avg, VnotAF_std, syn_all] = VAF_healthy(n,trialTypeNumber) % average Variance Not Accounted For, healthy controls
+        function [VAF_avg, VAF_std, VnotAF_avg, VnotAF_std, syn] = VAF_healthy(n,trialTypeNumber) % average Variance Not Accounted For, healthy controls
             % INPUTS:
             %               n = number of synergies to solve for
             % trialTypeNumber = number specifying which trialtype (see tbiStudy.constants.trialType)

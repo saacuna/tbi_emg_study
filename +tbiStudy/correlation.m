@@ -496,6 +496,19 @@ classdef correlation
                 % end
             end
         end
+        function [DGI, cor_muscle, labels] = baseline_DGIvsHealthy_muscle()
+            % looks at correlations to healthy, for specific muscles
+            [DGI, cor, labels] = tbiStudy.correlation.baseline_DGIvsHealthy; % pull data
+            
+            % average right and left legs
+            for muscle = 1:6
+                cor_muscle(:,muscle) = mean([cor(:,muscle) cor(:,muscle+6)],2);
+            end
+            
+            labels = regexprep(labels,'R ',''); % remove right leg specifier
+            labels = labels(1:6);
+            
+        end
         function cor = assembleMatrix(tr) % assemble the correlation matrix for above functions
             cor = cell(12,2); %  12 muscles x (data, name)
             for muscle = 1:12
@@ -506,6 +519,40 @@ classdef correlation
                 cor{muscle,2} = tr(1).emgLabel{muscle}; % muscle name
             end
             
+        end
+        function [cor_muscle, labels] = healthySubjVsHealthy()
+            % correlation to a healthy subject to the ensemble healthy
+            
+            % 1. retrieve from database, using default values
+            sqlquery = ['select trials_healthy.* from trials_healthy '...
+                'where trialType = "treadmill22" ']; % default trialType
+            tr = tbiStudy.load.trials(sqlquery);
+            [rows ~] = size(tr); % total rows
+            
+             % 2. find healthy correlation for each trial
+             healthyCor =  zeros(rows,12); % 12 muscles
+            for i = 1:rows
+                cor = tbiStudy.correlation.healthy(tr(i)); % calc correlation matrices for each muscle
+                for muscle = 1:12 
+                    healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                end
+            end
+            
+            
+            % 3. pull the muscle labels
+            for i = 1:12
+            labels{i} = cor{i,2};
+            end
+            
+            labels = regexprep(labels,'R ',''); % remove right leg specifier
+            labels = labels(1:6);
+            
+                   
+            % 4. average right and left legs
+            cor = healthyCor; % [nSubjects x 12 muscles]
+            for muscle = 1:6
+                cor_muscle(:,muscle) = mean([cor(:,muscle) cor(:,muscle+6)],2);
+            end
         end
     end
 end

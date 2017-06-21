@@ -723,6 +723,7 @@ classdef plot
         end
         function walkDMC_baseline() % walkDMC metric, compares healthy to TBI subjects
             
+            
             walkDMC_TBI = tbiStudy.synergies.walkDMC();
             walkDMC_healthy = tbiStudy.synergies.walkDMC_healthy();
             
@@ -762,6 +763,47 @@ classdef plot
             legend('TBI left leg', 'TBI right leg','healthy Control left leg', 'healthy Control right leg')
             
         end
+        function walkDMC_baseline2() % walkDMC metric, compares healthy to TBI subjects
+            
+            
+            
+            
+            walkDMC_TBI = tbiStudy.synergies.walkDMC();
+            walkDMC_healthy = tbiStudy.synergies.walkDMC_healthy();
+            
+            %%
+            wdmcH = mean(walkDMC_healthy,2)
+            wdmc = mean(walkDMC_TBI,2)
+            %%
+            figure
+            ms = 8;
+            plot(ones(length(wdmcH)),wdmcH,'ko','MarkerSize',ms)
+            hold on
+            plot(2*ones(length(wdmc)),wdmc,'ko','MarkerSize',ms)
+            
+            sigstar({[1,2]})
+            
+            xticks(1:2)
+            xticklabels({'Healthy Controls','TBI'})
+            xlim([0.5,2.5])
+            ylim([60, 120])
+            %%
+            w = [walkDMC_healthy(:,1); walkDMC_healthy(:,2)];
+            
+            walkDMC = [w; mean(walkDMC_TBI,2)];
+            walkDMC_grouping = [zeros(length(w),1); ones(length(walkDMC_TBI),1)];
+            
+            figure
+            markerSize = 12;
+            % PLOT TBIs
+            
+            boxplot(walkDMC,walkDMC_grouping,'Labels',{'Healthy Controls','TBI'});
+            
+            title('walk-DMC')
+            ylabel('walk-DMC');
+            
+            
+        end
         function walkDMC_DGI() % plots walkDMC vs DGI
             fSize = 14;
             
@@ -771,21 +813,25 @@ classdef plot
              
              % calc walkDMC data
              walkDMC_TBI = tbiStudy.synergies.walkDMC(testPoint,trialType,healthyTrialTypeNumber);
+            
+             wdmc = mean(walkDMC_TBI,2);
              
              % calculate correlations
             [DGI, SOT, sixMWT, cor, DGIcor, SOTcor, sixMWTcor, labels] = tbiStudy.correlation.baseline_vsHealthy();
-    
+            
+            
+            
             % DGI vs Average Healthy Baseline Correlation
             figure('Name','DGI vs walkDMC')
             set(gcf,'color','w');
-            scatter(DGI,walkDMC_TBI,'ko');
+            scatter(DGI,wdmc,'ko');
             lsline; % least squares line
-            cor = corrcoef(DGI,walkDMC_TBI);
+            cor = corrcoef(DGI,wdmc);
             text(8,90,['R = ' num2str(cor(1,2))]);
             
             xlim(tbiStudy.plot.dgiPlotXAxisLimits);
 
-            title(['DGI vs walk-DMC'],'FontSize',fSize);
+            %title(['DGI vs walk-DMC'],'FontSize',fSize);
             ylabel('walk-DMC','FontSize',fSize);
             xlabel('DGI Score','FontSize',fSize);
             set(gca,'FontSize',fSize,'FontWeight','normal')
@@ -853,51 +899,91 @@ classdef plot
             labelMuscleAbbrev = {'TA','GAS','SOL','VL','RF','HAM'};
             
             %% healthy weightings
-            legRows = length(synergies_healthy{1}); % number of rows of legs used
+            observations = length(synergies_healthy{1}); % number of rows of legs used
             n = length(synergies_healthy); % max number of synergies
-            W_syn = cell(5,1);
-            for i = 1:n % iterate through total number of synergies
-                W = cell(i,1);
-                for j = 1:i % iterate through columns (number of synergies)
-                    w = zeros(6,legRows);
-                    for k = 1:legRows % iterate through rows    
-                        w(:,k) = synergies_healthy{i}(k).W(:,j); % pull weighting for that column and leg
-                    end
-                    W{j} = w;   % Combine to create cell array of synergy weighting
-                    % for example, if total synergy is 2:
-                    % W{2} = [6xlegRows], all weightings of 2nd synergy for all legs. now, can do: mean(W{j},2) to find average weighting
-                    % W{1} is the weightings for the first synergy, 
-                end
-                W_syn{i} = W; % W_syn is a cell array for the weights of varying number of synergies (1-5)
+            %W_syn = cell(5,1);
+            for i = 2 % :n % iterate through total number of synergies
+                
+                % pull all weightings
+                W = [synergies_healthy{i}.W]'; 
+                % e.g. for n = 2, W = [syn1a; syn1b; syn2a; syn2b; ...
+                
+                % k means clustered analysis, of the weightings, grouped
+                % into i clusters
+                [idx,C_kmeans] = kmeans(W,i);
+                
+                % check that clusters are divided equally
+                disp(['n = ' num2str(i) ', k means indices... (check for no repeats)'])
+                reshape(idx,i,observations)
+                
+                % index synergies weights 1 and 2
+                index1 = find(idx==1);
+                index2 = find(idx==2);
+                
+                % pull clustered weights
+                W1 = W(index1,:);
+                W2 = W(index2,:);
+                
+                % pull clustered observations
+                C = vertcat(synergies_healthy{i}.C);
+                C1 = C(index1,:);
+                C2 = C(index2,:);
             end
             
             %% healthy activations
-            C_syn = cell(5,1);
-            for i = 1:n % iterate through total number of synergies
-                C = cell(i,1);
-                for j = 1:i % iterate through rows of activations (number of synergies)
-                    c = zeros(legRows,101);
-                    for k = 1:legRows % iterate through rows of legs
-                        c(k,:) = synergies_healthy{i}(k).C(j,:); % pull weighting for that column and leg
-                    end
-                    C{j} = c;   % Combine to create cell array of synergy activation
-                    % for example, if total synergy is 2:
-                    % C{2} = [legRowsx101], all activations of 2nd synergy for all legs
-                    % C{1} is the activations for the first synergy, 
-                end
-                C_syn{i} = C; % C_syn is a cell array for the activations of varying number of synergies (1-5)
-            end
+%             C_syn = cell(5,1);
+%             for i = 1:n % iterate through total number of synergies
+%                 C = cell(i,1);
+%                 for j = 1:i % iterate through rows of activations (number of synergies)
+%                     c = zeros(observations,101);
+%                     for k = 1:observations % iterate through rows of legs
+%                         c(k,:) = synergies_healthy{i}(k).C(j,:); % pull weighting for that column and leg
+%                     end
+%                     C{j} = c;   % Combine to create cell array of synergy activation
+%                     % for example, if total synergy is 2:
+%                     % C{2} = [legRowsx101], all activations of 2nd synergy for all legs
+%                     % C{1} is the activations for the first synergy, 
+%                 end
+%                 C_syn{i} = C; % C_syn is a cell array for the activations of varying number of synergies (1-5)
+%             end
             
             
             % THE ABOVE SHOULD BE MOVED TO THE SYNERGIES CLASS...
             
             %% PLOT ALL SYNERGIES, OVERLAID
             
-            for i = 1:n % iterate through total number of synergies
+            figure
+            subplot(2,2,1)
+            plot([1:6],W1,'o')
+                    title(['Healthy Weightings, n = ' num2str(i)]); xlabel('Muscles'); ylabel(['W (weight)']);
+                    ylim([0 1])
+                    xticks([1:6])
+                    xticklabels(labelMuscleAbbrev)
+                    
+            subplot(2,2,2)
+            plot([0:100],C1)
+                    title('Healthy Activation'); xlabel('Gait Cycle'); ylabel(['C (activation)']);
+                    axis(tbiStudy.plot.activationPlotLimits);
+                    
+            subplot(2,2,3)
+            plot([1:6],W2,'o')
+                    title(['Healthy Weightings, n = ' num2str(i)]); xlabel('Muscles'); ylabel(['W (weight)']);
+                    ylim([0 1])
+                    xticks([1:6])
+                    xticklabels(labelMuscleAbbrev)
+            
+            subplot(2,2,4)
+            plot([0:100],C2)
+                    title('Healthy Activation'); xlabel('Gait Cycle'); ylabel(['C (activation)']);
+                    axis(tbiStudy.plot.activationPlotLimits);
+            
+            %%
+            
+            %for i = 1:n % iterate through total number of synergies
                 figure % plot all
                 for j = 1:i % iterate  
                     subplot(i,2,2*j-1)
-                    plot([1:6],W_syn{i}{j},'o')
+                    plot([1:6],W1,'o')
                     title(['Healthy Weightings, n = ' num2str(i)]); xlabel('Muscles'); ylabel(['W (weight)']);
                     ylim([0 1])
                     xticks([1:6])
@@ -909,7 +995,7 @@ classdef plot
                     axis(tbiStudy.plot.activationPlotLimits);
                 end
                 suptitle(['Weights and Activations, n = ' num2str(i)])
-            end
+            %end
             
             %% PLOT AVERAGE SYNERGIES
             for i = 1:n % iterate through total number of synergies
