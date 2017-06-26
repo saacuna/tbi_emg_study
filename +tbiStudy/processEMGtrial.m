@@ -413,7 +413,7 @@ lumbar = avgcycle(ax(3).time,amagf(:,3),ax(1).time(hsrp),10,50); % lumbar, relat
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Normalize the EMG data
+%Normalize the EMG data to root-mean-squared
 for j=1:12
     emgrms(j)=rms(emgdata(:,j));
     normemg(:,j)=(emgc(j).avg)./(emgrms(j));

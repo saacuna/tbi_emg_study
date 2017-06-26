@@ -313,7 +313,6 @@ classdef correlation
             % 1. retrieve from database, using default values
             sqlquery = ['select trials.* from trials, tbi_subjectsSummary_loadedTrials '...
                 'where (tbi_subjectsSummary_loadedTrials.subject_id = trials.subject_id) '...
-                'and (trials.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
                 'and trialType = "baseline" '... % default trialType
                 'and (testPoint = 1)']; % default Pre/Post window
             tr = tbiStudy.load.trials(sqlquery);
@@ -323,8 +322,12 @@ classdef correlation
              healthyCor =  zeros(rows,12); % 12 muscles
             for i = 1:rows
                 cor = tbiStudy.correlation.healthy(tr(i)); % calc correlation matrices for each muscle
-                for muscle = 1:12 
-                    healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                for muscle = 1:12
+                    if all(size(cor{i,muscle}) == [1 1]) % [1x1]
+                        healthyCor(i,muscle) = cor{muscle,1}; % pull corr coeff for each muscle
+                    elseif all(size(cor{i,muscle}) == [1 1]) % [2x2]. when using Pearson correlation
+                        healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                    end
                 end
             end
             
@@ -336,7 +339,6 @@ classdef correlation
             % 4. find DGI that corresponds to each trial
             sqlquery = ['select DGI.* from DGI, tbi_subjectsSummary_loadedTrials '...
                 'where (tbi_subjectsSummary_loadedTrials.subject_id = DGI.subject_id) '...
-                'and (DGI.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
                 'and (testPoint = 1)']; % default Pre/Post window
             conn = database('', '', '', 'org.sqlite.JDBC', tbiStudy.constants.dbURL);
             exec(conn,'PRAGMA foreign_keys=ON');
@@ -360,7 +362,6 @@ classdef correlation
             % 1. retrieve from database, using default values
             sqlquery = ['select trials.* from trials, tbi_subjectsSummary_loadedTrials '...
                 'where (tbi_subjectsSummary_loadedTrials.subject_id = trials.subject_id) '...
-                'and (trials.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
                 'and trialType = "baseline" '... % default trialType
                 'and (testPoint = 1)']; % default Pre/Post window
             tr = tbiStudy.load.trials(sqlquery);
@@ -370,8 +371,12 @@ classdef correlation
              healthyCor =  zeros(rows,12); % 12 muscles
             for i = 1:rows
                 cor = tbiStudy.correlation.healthy(tr(i)); % calc correlation matrices for each muscle
-                for muscle = 1:12 
-                    healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                for muscle = 1:12
+                    if all(size(cor{i,muscle}) == [1 1]) % [1x1]
+                        healthyCor(i,muscle) = cor{muscle,1}; % pull corr coeff for each muscle
+                    elseif all(size(cor{i,muscle}) == [1 1]) % [2x2]. when using Pearson correlation
+                        healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                    end
                 end
             end
             
@@ -380,10 +385,9 @@ classdef correlation
             labels{i} = cor{i,2};
             end
             
-            % 4. find DGI that corresponds to each trial
+            % 4. find SOT that corresponds to each trial
             sqlquery = ['select SOT.* from SOT, tbi_subjectsSummary_loadedTrials '...
                 'where (tbi_subjectsSummary_loadedTrials.subject_id = SOT.subject_id) '...
-                'and (SOT.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
                 'and (testPoint = 1)']; % default Pre/Post window
             conn = database('', '', '', 'org.sqlite.JDBC', tbiStudy.constants.dbURL);
             exec(conn,'PRAGMA foreign_keys=ON');
@@ -407,7 +411,6 @@ classdef correlation
             % 1. retrieve from database, using default values
             sqlquery = ['select trials.* from trials, tbi_subjectsSummary_loadedTrials '...
                 'where (tbi_subjectsSummary_loadedTrials.subject_id = trials.subject_id) '...
-                'and (trials.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
                 'and trialType = "baseline" '... % default trialType
                 'and (testPoint = 1)']; % default Pre/Post window
             tr = tbiStudy.load.trials(sqlquery);
@@ -417,8 +420,12 @@ classdef correlation
              healthyCor =  zeros(rows,12); % 12 muscles
             for i = 1:rows
                 cor = tbiStudy.correlation.healthy(tr(i)); % calc correlation matrices for each muscle
-                for muscle = 1:12 
-                    healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                for muscle = 1:12
+                    if all(size(cor{i,muscle}) == [1 1]) % [1x1]
+                        healthyCor(i,muscle) = cor{muscle,1}; % pull corr coeff for each muscle
+                    elseif all(size(cor{i,muscle}) == [1 1]) % [2x2]. when using Pearson correlation
+                        healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                    end
                 end
             end
             
@@ -427,10 +434,9 @@ classdef correlation
             labels{i} = cor{i,2};
             end
             
-            % 4. find DGI that corresponds to each trial
+            % 4. find sixMWT that corresponds to each trial
             sqlquery = ['select sixMWT.* from sixMWT, tbi_subjectsSummary_loadedTrials '...
                 'where (tbi_subjectsSummary_loadedTrials.subject_id = sixMWT.subject_id) '...
-                'and (sixMWT.subject_id  != 26) '... %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % temporary until file fixed!
                 'and (testPoint = 1)']; % default Pre/Post window
             conn = database('', '', '', 'org.sqlite.JDBC', tbiStudy.constants.dbURL);
             exec(conn,'PRAGMA foreign_keys=ON');
@@ -457,7 +463,9 @@ classdef correlation
             % combine the correlations for all the muscles for average value
             cor = mean(cor,2);
             
-            % compute correlation of METRIC vs Average Muscle Correlation
+            % compute PEARSON correlation of METRIC vs Average Muscle Correlation
+            % pearson might not be right, because of normality reasons.
+            % Maybe use 
             data = [DGI,SOT,sixMWT, cor];
             [coef, P] = corrcoef(data);
             DGIcor = coef(1,4);
@@ -510,13 +518,29 @@ classdef correlation
             
         end
         function cor = assembleMatrix(tr) % assemble the correlation matrix for above functions
+            % method: 1 = pearson correlation. 2 = wren 2005 cross correlation
+            method = 2; 
+                       
             cor = cell(12,2); %  12 muscles x (data, name)
             for muscle = 1:12
                 for i = 1:length(tr)
                     M(:,i) = tr(i).emgData(:,muscle); % assemble observation matrix for correlation
                 end
-                cor{muscle,1} = corrcoef(M(:,:)); % correlation of a muscle to itself
-                cor{muscle,2} = tr(1).emgLabel{muscle}; % muscle name
+                
+                if method == 1
+                    % OLD method. using Pearson Correlation
+                    cor{muscle,1} = corrcoef(M(:,:)); 
+                elseif method == 2
+                    % NEW
+                    % cross correlations, as defined by Wren 2005
+                    x = M(:,1); y = M(:,2);
+                    num = sum(x.*y);
+                    den = sqrt(sum(x.*x))*sqrt(sum(y.*y));
+                    cor{muscle,1} = num/den;
+                end
+                
+                % muscle name
+                cor{muscle,2} = tr(1).emgLabel{muscle}; 
             end
             
         end
@@ -533,8 +557,12 @@ classdef correlation
              healthyCor =  zeros(rows,12); % 12 muscles
             for i = 1:rows
                 cor = tbiStudy.correlation.healthy(tr(i)); % calc correlation matrices for each muscle
-                for muscle = 1:12 
-                    healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                for muscle = 1:12
+                    if all(size(cor{i,muscle}) == [1 1]) % [1x1]
+                        healthyCor(i,muscle) = cor{muscle,1}; % pull corr coeff for each muscle
+                    elseif all(size(cor{i,muscle}) == [1 1]) % [2x2]. when using Pearson correlation
+                        healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                    end
                 end
             end
             
