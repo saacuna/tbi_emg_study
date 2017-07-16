@@ -7,6 +7,7 @@ classdef constants
       status = {'completed','current','withdrawn'};  % possible statuses of each subject we bring in
       stimulation_level = {'unknown', 'active', 'control','N/A'}; % level on the PoNS devices, wont know until after completion of study collections (n/a for people who dont use the pons)
       muscles = {'tibialisAnterior','gastrocnemius','soleus','vastusLateralis','rectusFemoris','semitendinosus'};
+      col = struct('rTA',1,'rMG',2,'rSL',3,'rVL',4,'rRF',5,'rMH',6,'lTA',7,'lMG',8,'lSL',9,'lVL',10,'lRF',11,'lMH',12); % columns of EMG data, for reference
       
       % data files properties
       dataFolder = '/Users/samuelacuna_mini/Documents/_Local Data/data tbi_emg_study/';

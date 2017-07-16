@@ -313,7 +313,7 @@ function [emgcyc, emgcycstd, emgcyclabel, emgcycfreq] = calcEmgCycle(emg, ax, ay
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Finds the peaks of the filtered acceleration data
 
-[bfa,afa]=butter(3,25/(ax(1).freq/2));
+[bfa,afa]=butter(3,25/(ax(1).freq/2)); %Used to remove high-frequency noise above 25Hz
 
 
 for i=1:3
@@ -378,7 +378,7 @@ end
 emgdatar = detrend(emgdatar,0); % remove DC offset
 EMfr=filtfilt(bb,aa,emgdatar); %Zero-shift filter removing drift first
 EMGr=filtfilt(b,a,EMfr); %Zero-shift filter removing high frequency noise
-EMGabs=abs(EMGr); %Rectify data
+EMGabs=abs(EMGr); %Rectify data (full wave)
 emgdata=filtfilt(bbb,aaa,EMGabs); %Filter to envelopes of activation
 
 if plots % plots the filtered emg data
