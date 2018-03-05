@@ -211,8 +211,8 @@ classdef plot
                 plot([0:100]',tr(2).emgData(:,6+j),'color','k','LineWidth',1);
                 hold off
                 title(tr(3).emgLabel(6+j));
-                ylim(tbiNMBL.constants_tbiNMBL.emgPlotYAxisLimits);
-                xlabel(tbiNMBL.constants_tbiNMBL.emgPlotXAxisLabel);
+                ylim(tbiStudy.plot.emgPlotYAxisLimits);
+                xlabel(tbiStudy.plot.emgPlotXAxisLabel);
             end 
             
             % create legend
@@ -273,6 +273,33 @@ classdef plot
             figure('Name','DGI vs Correlation')
             set(gcf,'color','w');
             
+            
+            active = [1
+2
+1
+2
+2
+1
+2
+1
+1
+1
+2
+2
+1
+2
+2
+1
+1
+2
+2
+1
+1
+2
+2
+1
+1]
+            
             for j = 1:6 % right leg
                 subplot(6,2,2*j);
                 hold on
@@ -284,11 +311,22 @@ classdef plot
                 set(h(1),'MarkerEdgeColor','none','MarkerFaceColor','k')
                 % set second circle as empty
                 set(h(2),'MarkerEdgeColor','k','MarkerFaceColor','none')
-                hold off
+                
                 title(labels(j))
                 ylim(tbiStudy.plot.dgiPlotYAxisLimits);
                 xlim(tbiStudy.plot.dgiPlotXAxisLimits);
+                
+%                 for q = 1:25
+%                     if active(q)==1; COLOR = 'r';
+%                     else COLOR = 'k';
+%                     end
+%                 plot(DGI,healthyCor(:,q,j),'LineStyle','-','Color',COLOR);
+%                 end
+                hold off
+                
             end
+            
+            
             for j = 1:6 % left leg
                 subplot(6,2,2*j-1);
                 hold on
@@ -763,12 +801,14 @@ classdef plot
             legend('TBI left leg', 'TBI right leg','healthy Control left leg', 'healthy Control right leg')
             
         end
-        function walkDMC_baseline2() % walkDMC metric, compares healthy to TBI subjects
+        function walkDMC_baseline2(testPoint) % walkDMC metric, compares healthy to TBI subjects
             
             
+            if nargin < 1
+                testPoint = 1;
+            end
             
-            
-            walkDMC_TBI = tbiStudy.synergies.walkDMC();
+            walkDMC_TBI = tbiStudy.synergies.walkDMC(testPoint);
             walkDMC_healthy = tbiStudy.synergies.walkDMC_healthy();
             
             %%
@@ -788,7 +828,7 @@ classdef plot
             xlim([0.5,2.5])
             ylim([60, 120])
             %%
-            w = [walkDMC_healthy(:,1); walkDMC_healthy(:,2)];
+            w = [walkDMC_healthy(:,1); walkDMC_healthy(:,2)]; % am I used both left and right legs here? seems sketchy
             
             walkDMC = [w; mean(walkDMC_TBI,2)];
             walkDMC_grouping = [zeros(length(w),1); ones(length(walkDMC_TBI),1)];
@@ -802,6 +842,103 @@ classdef plot
             title('walk-DMC')
             ylabel('walk-DMC');
             
+            
+        end
+        function walkDMC_WCBabstract() % TEMPORARY AND SHITTY FUNCTION JUST TO FINISH MY DAMN ABSTRACT
+            
+            
+            [walkDMC_TBI_TP1 walkDMC_TBI_TP2] = tbiStudy.plot.walkDMC_WCBabstract_syn()
+            walkDMC_healthy = tbiStudy.synergies.walkDMC_healthy();
+            
+            %%
+            wdmcH = mean(walkDMC_healthy,2)
+            
+            %%
+           
+            
+            walkDMC = [wdmcH; walkDMC_TBI_TP1;walkDMC_TBI_TP2];
+            walkDMC_grouping = [ones(length(wdmcH),1); 2*ones(length(walkDMC_TBI_TP1),1);3*ones(length(walkDMC_TBI_TP2),1)];
+            
+            figure
+            %%
+            
+            data = {wdmcH, walkDMC_TBI_TP1,walkDMC_TBI_TP2};
+            catIdx = walkDMC_grouping;
+            plotSpread(data,'categoryIdx',catIdx,'categoryMarkers',{'o','s','s'},'categoryColors',{'r','b','b'},'spreadWidth',2)
+            
+            legend('Healthy Controls','TBI Subjects')
+            ylabel('Walk-DMC')
+            title('Walk-DMC')
+            
+            hold on
+            % remember, the middle line on the box plot is the median!
+            boxplot(walkDMC,walkDMC_grouping,'Labels',{'Healthy Controls','Before Treatment','After Treatment'});
+            hold off
+
+            hold on
+            x = [2;3];
+            y = [walkDMC_TBI_TP1, walkDMC_TBI_TP2]';
+            for i = 1:length(walkDMC_TBI_TP1)
+                plot(x,y(:,i));
+            end
+
+            hold off
+            %xticks([1,2,3])
+            %xticklabels({'Healthy Controls','Before Treatment','After Treatment'})
+
+            
+        end
+        function [walkDMC_TBI_TP1 walkDMC_TBI_TP2] = walkDMC_WCBabstract_syn() % TEMP AND SHITTY TO GET ABSRTACT DONE IN TIME
+            % TP 1 and 2 for only those who I've processed data for by now
+            
+            n = 1; % solve for one synergy
+            
+                trialType = 'overground';
+                healthyTrialTypeNumber = 2; % for overground = 2, treadmill 22 = 4
+            
+            % display parameters
+            disp(['Using TBI trialType: ' trialType ', and healthy control trialType: ' tbiStudy.constants.trialType{healthyTrialTypeNumber}]);
+            disp(['and looking at TestPoint 1 and 2']);
+            
+            % 1. find walk DMC TP1
+            
+            sqlquery = ['select * from trials where (testPoint = 1) and trialType = "overground" and subject_id < 29 and subject_id != 6 and subject_id != 14'];
+            tr = tbiStudy.load.trials(sqlquery);
+            syn = tbiStudy.synergies.calcSynergies_multiple(tr,n);
+            disp(['TBI synergies calculated: ' num2str(length(syn)) ' (' num2str(2*length(syn)) ' total)']);
+            [~, ~, VnotAF1_avg, VnotAF1_std] = tbiStudy.synergies.VAF_healthy(n,healthyTrialTypeNumber);
+            walkDMC = zeros(length(syn),2); % [left, right]
+            for i = 1:length(syn)
+                % left leg
+                walkDMC(i,1) = 100 + 10*((syn(i).leftLeg.VnotAF - VnotAF1_avg)/(VnotAF1_std)); % Steele 2015
+                [syn(i).leftLeg.walkDMC] = walkDMC(i,1);
+                
+                % right leg
+                walkDMC(i,2) = 100 + 10*((syn(i).rightLeg.VnotAF - VnotAF1_avg)/(VnotAF1_std)); % Steele 2015
+                [syn(i).rightLeg.walkDMC] = walkDMC(i,2);
+            end
+            walkDMC_TBI_TP1 = mean(walkDMC,2);
+            walkDMC_TP1 = walkDMC
+            
+            % 2. find walk DMC TP2
+            
+            sqlquery = ['select * from trials where (testPoint = 2) and trialType = "overground" and subject_id < 29 and subject_id != 6 and subject_id != 14'];
+            tr = tbiStudy.load.trials(sqlquery);
+            syn = tbiStudy.synergies.calcSynergies_multiple(tr,n);
+            disp(['TBI synergies calculated: ' num2str(length(syn)) ' (' num2str(2*length(syn)) ' total)']);
+            [~, ~, VnotAF1_avg, VnotAF1_std] = tbiStudy.synergies.VAF_healthy(n,healthyTrialTypeNumber);
+            walkDMC = zeros(length(syn),2); % [left, right]
+            for i = 1:length(syn)
+                % left leg
+                walkDMC(i,1) = 100 + 10*((syn(i).leftLeg.VnotAF - VnotAF1_avg)/(VnotAF1_std)); % Steele 2015
+                [syn(i).leftLeg.walkDMC] = walkDMC(i,1);
+                
+                % right leg
+                walkDMC(i,2) = 100 + 10*((syn(i).rightLeg.VnotAF - VnotAF1_avg)/(VnotAF1_std)); % Steele 2015
+                [syn(i).rightLeg.walkDMC] = walkDMC(i,2);
+            end
+            walkDMC_TBI_TP2 = mean(walkDMC,2);
+            walkDMC_TP2 = walkDMC
             
         end
         function walkDMC_DGI() % plots walkDMC vs DGI

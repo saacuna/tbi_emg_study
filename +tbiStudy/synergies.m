@@ -83,7 +83,7 @@ classdef synergies
             
             % display parameters
             disp(['Using TBI trialType: ' trialType ', and healthy control trialType: ' tbiStudy.constants.trialType{healthyTrialTypeNumber}]);
-            
+            disp(['and looking at TestPoint; ' num2str(testPoint)]);
             % 1. retrieve from database
             if strcmp(trialType,'preferred') && (testPoint == 1); trialType = 'baseline'; end
             sqlquery = ['select * from trials where testPoint = ' num2str(testPoint) ' and trialType = "' trialType '"'];

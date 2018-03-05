@@ -517,7 +517,7 @@ classdef correlation
         end
         function cor = assembleMatrix(tr) % assemble the correlation matrix for above functions
             % method: 1 = pearson correlation. 2 = wren 2005 cross correlation
-            method = 2; 
+            method = 1; 
                        
             cor = cell(12,2); %  12 muscles x (data, name)
             for muscle = 1:12
@@ -542,12 +542,46 @@ classdef correlation
             end
             
         end
-        function [cor_muscle, labels] = healthySubjVsHealthy()
+        function [healthyCor_healthy healthyCor_healthy_avgLeg] = healthySubjVsHealthy()
             % correlation to a healthy subject to the ensemble healthy
             
             % 1. retrieve from database, using default values
             sqlquery = ['select trials_healthy.* from trials_healthy '...
                 'where trialType = "treadmill22" ']; % default trialType
+            
+            tr = tbiStudy.load.trials(sqlquery);
+            [rows ~] = size(tr); % total rows
+            
+             % 2. find healthy correlation for each trial
+             healthyCor_healthy =  zeros(rows,12); % 12 muscles
+            for i = 1:rows
+                cor = tbiStudy.correlation.healthy(tr(i)); % calc correlation matrices for each muscle
+                for muscle = 1:12
+                    if all(size(cor{1,1}) == [1 1]) % [1x1]
+                        healthyCor_healthy(i,muscle) = cor{muscle,1}; % pull corr coeff for each muscle
+                    elseif all(size(cor{1,1}) == [2 2]) % [2x2]. when using Pearson correlation
+                        healthyCor_healthy(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                    end
+                end
+            end
+
+                   
+            % 4. average right and left legs
+            cor = healthyCor_healthy; % [nSubjects x 12 muscles]
+            for muscle = 1:6
+                healthyCor_healthy_avgLeg(:,muscle) = mean([cor(:,muscle) cor(:,muscle+6)],2);
+            end
+        end
+        function [healthyCor labels healthyCor_avgLeg labels_avgLeg] = baseline_healthyCor()
+            % looks at correlations to healthy, for specific muscles,
+            % baseline treadmill
+            
+            
+            % 1. retrieve from database, using default values
+            sqlquery = ['select trials.* from trials, tbi_subjectsSummary_loadedTrials '...
+                'where (tbi_subjectsSummary_loadedTrials.subject_id = trials.subject_id) '...
+                'and trialType = "baseline" '... % default trialType
+                'and (testPoint = 1)']; % default Pre/Post window
             tr = tbiStudy.load.trials(sqlquery);
             [rows ~] = size(tr); % total rows
             
@@ -556,29 +590,70 @@ classdef correlation
             for i = 1:rows
                 cor = tbiStudy.correlation.healthy(tr(i)); % calc correlation matrices for each muscle
                 for muscle = 1:12
-                    if all(size(cor{i,muscle}) == [1 1]) % [1x1]
+                    if all(size(cor{1,1}) == [1 1]) % [1x1]
                         healthyCor(i,muscle) = cor{muscle,1}; % pull corr coeff for each muscle
-                    elseif all(size(cor{i,muscle}) == [1 1]) % [2x2]. when using Pearson correlation
+                    elseif all(size(cor{1,1}) == [2 2]) % [2x2]. when using Pearson correlation
                         healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
                     end
                 end
             end
-            
             
             % 3. pull the muscle labels
             for i = 1:12
             labels{i} = cor{i,2};
             end
             
-            labels = regexprep(labels,'R ',''); % remove right leg specifier
-            labels = labels(1:6);
             
-                   
-            % 4. average right and left legs
-            cor = healthyCor; % [nSubjects x 12 muscles]
+            % average right and left legs
             for muscle = 1:6
-                cor_muscle(:,muscle) = mean([cor(:,muscle) cor(:,muscle+6)],2);
+                healthyCor_avgLeg(:,muscle) = mean([healthyCor(:,muscle) healthyCor(:,muscle+6)],2);
             end
+             labels_avgLeg = regexprep(labels,'R ',''); % remove right leg specifier
+             labels_avgLeg = labels_avgLeg(1:6);
+        end
+        function [healthyCor labels subject_id healthyCor_avgLeg labels_avgLeg] = baseline_healthyCor_overground()
+            % looks at correlations to healthy, for specific muscles,
+            % baseline treadmill
+            
+            % NOTE: yOU HAVE TO CHANGE THE HEALTHY CONTROL FILE TO
+            % REFERENCE OVERGROUND, THIS IS SET IN CONSTANTS.m 
+            
+            % 1. retrieve from database, using default values
+            sqlquery = ['select trials.* from trials, tbi_subjectsSummary_loadedTrials '...
+                'where (tbi_subjectsSummary_loadedTrials.subject_id = trials.subject_id) '...
+                'and trialType = "overground" '... % default trialType
+                'and (testPoint = 1)']; % default Pre/Post window
+            tr = tbiStudy.load.trials(sqlquery);
+            [rows ~] = size(tr); % total rows
+            
+             % 2. find healthy correlation for each trial
+             healthyCor =  zeros(rows,12); % 12 muscles
+            for i = 1:rows
+                cor = tbiStudy.correlation.healthy(tr(i)); % calc correlation matrices for each muscle
+                for muscle = 1:12
+                    if all(size(cor{1,1}) == [1 1]) % [1x1]
+                        healthyCor(i,muscle) = cor{muscle,1}; % pull corr coeff for each muscle
+                    elseif all(size(cor{1,1}) == [2 2]) % [2x2]. when using Pearson correlation
+                        healthyCor(i,muscle) = cor{muscle,1}(1,2); % pull corr coeff for each muscle
+                    end
+                end
+            end
+            
+            % 3. pull the muscle labels
+            for i = 1:12
+            labels{i} = cor{i,2};
+            end
+            
+            
+            % average right and left legs
+            for muscle = 1:6
+                healthyCor_avgLeg(:,muscle) = mean([healthyCor(:,muscle) healthyCor(:,muscle+6)],2);
+            end
+             labels_avgLeg = regexprep(labels,'R ',''); % remove right leg specifier
+             labels_avgLeg = labels_avgLeg(1:6);
+             
+            % pull subject number
+            subject_id = [tr.subject_id]';
         end
     end
 end
