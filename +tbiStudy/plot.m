@@ -902,7 +902,7 @@ classdef plot
             
             % 1. find walk DMC TP1
             
-            sqlquery = ['select * from trials where (testPoint = 1) and trialType = "overground" and subject_id < 29 and subject_id != 6 and subject_id != 14'];
+            sqlquery = ['select * from trials where (testPoint = 1) and trialType = "baseline"'];
             tr = tbiStudy.load.trials(sqlquery);
             syn = tbiStudy.synergies.calcSynergies_multiple(tr,n);
             disp(['TBI synergies calculated: ' num2str(length(syn)) ' (' num2str(2*length(syn)) ' total)']);

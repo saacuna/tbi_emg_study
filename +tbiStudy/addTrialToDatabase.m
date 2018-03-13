@@ -58,6 +58,6 @@ function notes = setNotes() % add notes dialogue box
 prompt = {'trial EMG Processing Notes:   (if any)'};
 prompt_title = 'trial EMG Processing Notes';
 prompt_answer = inputdlg(prompt,prompt_title,[3 60]);
-if isempty(prompt_answer); prompt_answer{1} = ''; end; 
+if isempty(prompt_answer); prompt_answer{1} = ' '; end; 
 notes = prompt_answer{1};
 end

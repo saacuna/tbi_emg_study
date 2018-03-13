@@ -1,4 +1,4 @@
-classdef load
+ classdef load
     % Filename: load.m
     % Author:   Samuel Acuna
     % Date:     11 Jan 2017
@@ -78,6 +78,110 @@ classdef load
             end
             tr = tr_temp;
             disp(['Loaded healthy ' trialType ' trials.']);
+        end
+        function subj = subjects(subjectType)
+            % Author:   Samuel Acuna
+            % Date:     12 Mar 2018
+            % Description:
+            % This function loads the subject info specified
+            % It forms a structure array called 'sub'. The files must be in the SQLite
+            % database.
+            %
+            % Usage:
+            %       sqlquery = 'select * from trials where subject_id = 1';
+            %       tr = tbiStudy.loadSelectTrials(sqlquery);
+            %
+            % Alternate: return all the trials in the database
+            %       tr = tbiStudy.loadSelectTrials();
+            
+            if nargin==0 % select all by default
+                subjectType = 'all';
+            end
+            'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 1 and trials.trialType = "baseline"';
+            switch subjectType
+                case 'all'
+                    sqlquery = 'select * from tbi_subjects';
+                case 'all_id'
+                    sqlquery = 'select subject_id from tbi_subjects';
+                case 'active_id' 
+                    sqlquery = 'select subject_id from tbi_subjects where stimulation_level = "Active"';
+                case 'control_id'
+                    sqlquery = 'select subject_id from tbi_subjects where stimulation_level = "Control"';
+                case 'all_id_tp01_baseline'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 1 and trials.trialType = "baseline"';
+                case 'all_id_tp02_baseline'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 2 and trials.trialType = "baseline"';
+                case 'all_id_tp06_baseline'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 6 and trials.trialType = "baseline"';
+                case 'all_id_tp10_baseline'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 10 and trials.trialType = "baseline"';
+                case 'active_id_tp01_baseline'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 1 and trials.trialType = "baseline" and tbi_subjects.stimulation_level = "Active"';
+                case 'active_id_tp02_baseline'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 2 and trials.trialType = "baseline" and tbi_subjects.stimulation_level = "Active"';
+                case 'active_id_tp06_baseline'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 6 and trials.trialType = "baseline" and tbi_subjects.stimulation_level = "Active"';
+                case 'active_id_tp10_baseline'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 10 and trials.trialType = "baseline" and tbi_subjects.stimulation_level = "Active"';
+                case 'control_id_tp01_baseline'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 1 and trials.trialType = "baseline" and tbi_subjects.stimulation_level = "Control"';
+                case 'control_id_tp02_baseline'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 2 and trials.trialType = "baseline" and tbi_subjects.stimulation_level = "Control"';
+                case 'control_id_tp06_baseline'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 6 and trials.trialType = "baseline" and tbi_subjects.stimulation_level = "Control"';
+                case 'control_id_tp10_baseline'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 10 and trials.trialType = "baseline" and tbi_subjects.stimulation_level = "Control"';
+                    
+                case 'all_id_tp01_overground'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 1 and trials.trialType = "overground"';
+                case 'all_id_tp02_overground'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 2 and trials.trialType = "overground"';
+                case 'all_id_tp06_overground'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 6 and trials.trialType = "overground"';
+                case 'all_id_tp10_overground'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 10 and trials.trialType = "overground"';
+                case 'active_id_tp01_overground'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 1 and trials.trialType = "overground" and tbi_subjects.stimulation_level = "Active"';
+                case 'active_id_tp02_overground'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 2 and trials.trialType = "overground" and tbi_subjects.stimulation_level = "Active"';
+                case 'active_id_tp06_overground'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 6 and trials.trialType = "overground" and tbi_subjects.stimulation_level = "Active"';
+                case 'active_id_tp10_overground'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 10 and trials.trialType = "overground" and tbi_subjects.stimulation_level = "Active"';
+                case 'control_id_tp01_overground'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 1 and trials.trialType = "overground" and tbi_subjects.stimulation_level = "Control"';
+                case 'control_id_tp02_overground'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 2 and trials.trialType = "overground" and tbi_subjects.stimulation_level = "Control"';
+                case 'control_id_tp06_overground'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 6 and trials.trialType = "overground" and tbi_subjects.stimulation_level = "Control"';
+                case 'control_id_tp10_overground'
+                    sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 10 and trials.trialType = "overground" and tbi_subjects.stimulation_level = "Control"';
+            end
+            
+            
+            % Make connection to database, Using JDBC driver.
+            conn = database('', '', '', 'org.sqlite.JDBC', tbiStudy.constants.dbURL);
+            exec(conn,'PRAGMA foreign_keys=ON');
+            
+            % Read data from database.
+            curs = exec(conn, sqlquery);
+            curs = fetch(curs);
+            close(curs);
+            
+            % prepare structure of queried data
+            data = curs.Data;
+            
+            if ~iscell(data)
+                error('Query failed. Check for typos.');
+            elseif strcmp(data{1,1},'No Data')
+                error('Successful Query, but returned no results.');
+            else
+                subj = data;
+                disp('Loaded query successfully.');
+            end
+            
+            % Close database connection.
+            close(conn); 
         end
     end %methods
     

@@ -1,4 +1,4 @@
-function tr = processEMGtrial(varargin)
+function [tr, inpath] = processEMGtrial(varargin)
 % Filename: processEMGtrial.m
 % Author:   Samuel Acuna
 % Date:     24 May 2016
@@ -25,12 +25,22 @@ function tr = processEMGtrial(varargin)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % load EMG data txt file
-disp('Select .txt EMG data file');
-[infile, inpath]=uigetfile('*.txt','Select input file',tbiStudy.constants.dataFolder);
-if infile == 0
-    error('Canceled. No file selected');
+clc
+
+if nargin < 2
+    disp('Select .txt EMG data file');
+    [infile, inpath]=uigetfile('*.txt','Select input file',tbiStudy.constants.dataFolder);
+    if infile == 0
+        error('Canceled. No file selected');
+    end
+    disp(['Selected: ' infile ]);
+    disp(' ');
+elseif nargin == 2
+    inpath = varargin{1};
+    infile = varargin{2};
+    disp(['Selected: ' infile ]);
+    disp(' ');
 end
-disp(['Selected: ' infile ]);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -49,10 +59,35 @@ tr= struct(...
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % specify trial information
-tr(1).subject_id= setSubjectID();
-tr(1).testPoint = setTestPoint();
-tr(1).trialType = setTrialType();
+c = strsplit(infile,'_'); % parse out info from file name
 
+try % subject id
+    ID = str2num(c{1}(4:end));
+    disp(['Subject ID: ' num2str(ID)])
+catch
+    ID = setSubjectID();
+end
+tr(1).subject_id = ID;
+
+try % testPoint
+    TP = str2num(c{2}(3:end));
+    assert(any(cell2mat(tbiStudy.constants.testPoint)==TP));
+    disp(['Test Point: ' num2str(TP)])
+catch
+    TP = setTestPoint();
+end
+tr(1).testPoint = TP;
+
+try % TrialType
+    c2 = strsplit(c{3},'.');
+    TT = c2{1};
+    assert(any(strcmp(tbiStudy.constants.trialType,TT)));
+    disp(['Trial Type: ' TT])
+catch
+    TT = setTrialType();
+end
+tr(1).trialType = TT;
+disp(' ');
 
 
 
