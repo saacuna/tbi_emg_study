@@ -1,33 +1,47 @@
-function [tr, inpath] = processEMGtrial(varargin)
+function [tr, inpath] = processEMGtrial(inpath,infile)
 % Filename: processEMGtrial.m
 % Author:   Samuel Acuna
 % Date:     24 May 2016
+% Updated:  01 May 2018
 % Description:
 % This class file is used to convert EMG data from a text file into a
-% matlab structure of the average gait cycle (a much smaller file)
+% matlab structure 
+%
+% creates either a structure of of the average gait cycle (a much smaller file)
+% or concatenated steps (much larger file)
+%
+% --- --- --- --- --- --- ---
+% INPUTS (OPTIONAL):
+%   inpath: path of the EMG data
+%   infile: filename of the EMG data
+%
 %
 % The raw emg data must be in a .txt format, not .hpf
 % To create the .txt version, open program 'emgworks_analysis' on collection
-% computer. load .hpf into workspace, click 'Tools', 'export to text tile'. Put this
-% file in the same location as the original .hpf
+% computer. load .hpf into workspace, click 'Tools', 'export to text tile'. 
 % 
-% This puts the processed Matlab file in the same location as the original
-% .txt file
+% --- --- --- --- --- --- ---
+% OUTPUTS:
+% The processed Matlab file will appear in the same location as the original
+% EMG .txt file. It will contain the matlab structure 'tr'
 % 
+%
+% --- --- --- --- --- --- ---
+% NOTES:
 % if I need to switch select sensors for left and right leg, see section in
 % calcEmgCycle function below
 %
-% Usage:
-%       tr = tbiStudy.processEMGtrial();
 %
-% optional: insert this trial into the database after processing
-%       tr = tbiStudy.processEMGtrial(1);
+% --- --- --- --- --- --- ---
+% EXAMPLE:
+%       tr = tbiStudy.processEMGtrial(); 
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
-% load EMG data txt file
-clc
+%% STEP 1: load EMG data txt file
+clc; clear; close all;
 
-if nargin < 2
+if nargin < 2 % query for EMG data file
     disp('Select .txt EMG data file');
     [infile, inpath]=uigetfile('*.txt','Select input file',tbiStudy.constants.dataFolder);
     if infile == 0
@@ -36,38 +50,37 @@ if nargin < 2
     disp(['Selected: ' infile ]);
     disp(' ');
 elseif nargin == 2
-    inpath = varargin{1};
-    infile = varargin{2};
     disp(['Selected: ' infile ]);
     disp(' ');
 end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
+%% STEP 2: specify trial information
+
 % setup empty trial structure
 tr= struct(...
     'subject_id',[],...
     'testPoint',[],...
     'trialType',[],...
-    'filename',[],...
-    'emgData',{},...
-    'emgStd',{},...
-    'emgLabel',{},...
-    'emgFreq',[]);
+    'filename',[]);
+% setup empty acceleration structure
+acc= struct(...
+    'subject_id',[],...
+    'testPoint',[],...
+    'trialType',[],...
+    'filename',[]);
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% specify trial information
 c = strsplit(infile,'_'); % parse out info from file name
 
-try % subject id
+try % subject ID
     ID = str2num(c{1}(4:end));
     disp(['Subject ID: ' num2str(ID)])
 catch
     ID = setSubjectID();
 end
 tr(1).subject_id = ID;
+acc(1).subject_id = ID;
 
 try % testPoint
     TP = str2num(c{2}(3:end));
@@ -77,6 +90,7 @@ catch
     TP = setTestPoint();
 end
 tr(1).testPoint = TP;
+acc(1).testPoint = TP;
 
 try % TrialType
     c2 = strsplit(c{3},'.');
@@ -87,83 +101,131 @@ catch
     TT = setTrialType();
 end
 tr(1).trialType = TT;
+acc(1).trialType = TT;
 disp(' ');
 
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% generate emg, ax, ay, az data
-disp('loading and converting raw emg data into matlab friendly format.')
+%% STEP 3: generate emg, ax, ay, az data
+disp('loading and converting raw EMG data into matlab friendly format.')
 disp('This might take a while...')
 try
     [emg, ax, ay, az] = load_emgworks(infile,inpath); % outputs = emg structure, acceleration in x,y,z
 catch
     error('could not load emgworks file. Something went wrong in the load_emgworks function.');
 end
-disp('conversion completed. now calculating emg data over average gait cycle....')
-
-
+disp('conversion completed.');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% calculate emg data over the average gate cycle
-calculationPlots = 0; % set to true if you want to see plots of intermediate calculations
+%% STEP 4: Identify steps from acceleration data
+disp('Finding steps in the acceleration data...');
 
-% % rearrange data if sensor 1 is in place of sensor 8
-% if (strcmp(emg(1).label,'L TIBIALIS ANTERIOR'))
-%     temp = emg(1); % l tibialis anterior
-%     for i = 1:6 % rearrange the right leg
-%         emg(i) = emg(i+1);
-%     end
-%     emg(7) = temp;
-%     disp(' ');
-%     disp('Rearranged Data because sensor 1 is in place of sensor 8.')
-%     disp(' ');
-% end
+[hsr_time, hsl_time, hsr_index, hsl_index, time_acc] = findStridesAcc(ax, ay, az); % get indexes of heel strike for R and L ankles
 
-% rearrange data if sensor 1 is in place of sensor 9
-if (strcmp(emg(1).label,'L GASTROCNEMIUS MEDIAL HEAD'))
-    temp = emg(1); % L GASTROCNEMIUS MEDIAL HEAD
-    for i = 1:7 % rearrange the right leg
-        emg(i) = emg(i+1);
-    end
-    emg(8) = temp;
-    disp(' ');
-    disp('Rearranged Data because sensor 1 is in place of sensor 9.')
-    disp(' ');
+acc(1).ax = ax; % save raw acceleration data, to use for later...
+acc(1).ay = ay;
+acc(1).az = az;
+acc(1).hsr_index = hsr_index; % sync indexes with acc(1).time to get actual times
+acc(1).hsl_index = hsl_index;
+acc(1).hsr_time = hsr_time;
+acc(1).hsl_time = hsl_time;
+acc(1).time = time_acc;
+clear ax ay az hsr_index hsl_index time_acc
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% STEP 5: filter EMG, amplitude normalize, and divide into steps (time normalize to step)
+disp('Filtering (BP 10-500 Hz), rectifying, linear envelopes (10 Hz), amplitude normalizing (peaks), time normalizing into steps.');
+time_emg = emg(1).time;
+[EMG_envelope, EMG_label] = filterEMG(emg); %BP filter 10-500 Hz, rectify, LP filter 10 Hz
+[EMG_sorted, EMG_label_sorted] = sortEMGsignals(EMG_envelope, EMG_label); % rearrange channels to match R & L legs
+
+% EMG_normalized = EMG_sorted./rms(EMG_sorted); % old: normalize to RMS of linear envelopes
+EMG_normalized = EMG_sorted./max(EMG_sorted); % current: normalize to Peak of linear envelopes
+% note: in my original analysis, I amplitude normalized the average gait
+% cycle by the rms of filtered EMG (I also normalized the std of the gait
+% cycle), which seems wrong now, but maybe mathematically works out.
+%         for j=1:12  % Normalize the EMG data to root-mean-squared
+%             emgrms(j)=rms(emgdata(:,j));
+%             normemg(:,j)=(emgc(j).avg)./(emgrms(j));
+%             normemgstd(:,j)=(emgc(j).sd)./(emgrms(j));
+%         end
+
+
+% %  here, might need to manually rearrange EMG columns if sensors were placed
+% %  on the incorrect muscles
+
+disp('Calculated EMG data by gait cycles.')
+[EMG_gaitCycles,nStrides_right,nStrides_left] = findStridesEMG(time_emg,EMG_normalized,hsr_time,hsl_time); % divide into steps and time normalize to 101 pts/cycle
+
+tr(1).emgLabel = EMG_label_sorted;
+tr(1).emgFreq = emg(1).freq;
+tr(1).emgSteps = EMG_gaitCycles;
+clear emg;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% STEP 6: save concatentated and average EMG by steps
+% created concatenated pattern across all steps
+EMG_concat = cell(1,12);
+for i = 1:12
+    steps = size(EMG_gaitCycles{1}(1:100,:),2);
+    EMG_concat1 = EMG_gaitCycles{i}(1:100,:);% cut off last time point for each step (since it is first of next step)
+    EMG_concat{i} = reshape(EMG_concat1,[steps*100,1]); % reshape into single vector
 end
+tr(1).emgConcat = EMG_concat;
 
+% find average gait cycle pattern across all steps
+disp('calculating emg data over average gait cycle....');
+EMG_avg = zeros(size(EMG_gaitCycles{1},1),12);
+EMG_std = zeros(size(EMG_gaitCycles{1},1),12);
+for i = 1:12
+    EMG_avg(:,i) = mean(EMG_gaitCycles{i}')';
+    EMG_std(:,i) = std(EMG_gaitCycles{i}')';
+end
+tr(1).emgData = EMG_avg; % save average gait cycle
+tr(1).emgStd = EMG_std;
 
-[emgcyc, emgcycstd, emgcyclabel, emgcycfreq] = calcEmgCycle(emg, ax, ay, az, calculationPlots);
-disp('Successfully calculated EMG data for average gait cycle.')
-
-
+% plot average gait cycle and steps overlaid
+figure(2)
+for j = 1:6
+    subplot(6,2,2*j)
+    shadedErrorBar([0:100]',EMG_avg(:,j),EMG_std(:,j));%,{'color',tbiStudy.plot.emgPlotColors{1}},tbiStudy.plot.transparentErrorBars);
+    hold on
+    for i = 1:nStrides_right
+        plot([0:100]',EMG_gaitCycles{j}(:,i))
+    end
+    hold off
+    title(EMG_label_sorted{j})
+    
+    subplot(6,2,2*j-1)
+    shadedErrorBar([0:100]',EMG_avg(:,6+j),EMG_std(:,6+j));%,{'color',tbiStudy.plot.emgPlotColors{1}},tbiStudy.plot.transparentErrorBars);
+    hold on
+    for i = 1:nStrides_left
+        plot([0:100]',EMG_gaitCycles{6+j}(:,i))
+    end
+    hold off
+    title(EMG_label_sorted{6+j})
+end
+fig = gcf; tightfig(gcf);
+suptitle(['TBI-' sprintf('%02d',tr(1).subject_id) ' TP' sprintf('%02d',tr(1).testPoint) ' ' tr(1).trialType])
+fig.PaperUnits = 'centimeters'; fig.PaperPosition = [0 0 25 30]; 
+filename = ['tbi' sprintf('%02d',tr(1).subject_id) '_tp' sprintf('%02d',tr(1).testPoint) '_' tr(1).trialType '_avg'];
+path_orig = cd(inpath);
+print(filename,'-dpng','-painters','-loose');
+cd(path_orig);
+disp(['Plot of EMG over gait cycles saved as: ' filename '.png']);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% construct emg data
-tr(1).emgData = emgcyc;
-tr(1).emgStd = emgcycstd;
-tr(1).emgLabel = emgcyclabel;
-tr(1).emgFreq = emgcycfreq;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% save file 
+% STEP 7: save file to original folder
 %tr(1).filename = ['hyn' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType];
-tr(1).filename = ['tbi' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType];
+tr(1).filename = ['tbi' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType '_EMG'];
 save([inpath tr.filename], 'tr');
-disp(['Trial Data saved as: ' tr.filename]);
+disp(['EMG data saved as: ' tr.filename]);
 disp(['in folder: ' inpath]);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% plot trial
-tbiStudy.plot.single(tr);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% optionally, insert this trial into the database
-if nargin > 0
-    if varargin{1} == 1
-        tbiStudy.addTrialToDatabase(tr,inpath);
-    end
-end
+acc(1).filename = ['tbi' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType '_ACC'];
+save([inpath acc.filename], 'acc');
+disp(['Acceleration data saved as: ' acc.filename]);
+disp(['in folder: ' inpath]);
 end
 
 
@@ -337,155 +399,253 @@ line=fgetl(fid);    jcolon=find(line==':');	hdr.hpcutoff=sscanf(line(jcolon+1:en
 line=fgetl(fid);    jcolon=find(line==':');	hdr.lpcutoff=sscanf(line(jcolon+1:end),'%f');
 fseek(fid,position,'bof');
 end
-function [emgcyc, emgcycstd, emgcyclabel, emgcycfreq] = calcEmgCycle(emg, ax, ay, az, plots)
-% this function takes the loaded raw emg data, and calculates
-% the data for the average emg for the gait cycle. this is a much smaller
-% amount of data to keep in memory
-
-% plots = 0 or 1, depending if you want to see plots accompanying the
-% calculation
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Finds the peaks of the filtered acceleration data
-
-[bfa,afa]=butter(3,25/(ax(1).freq/2)); %Used to remove high-frequency noise above 25Hz
+function [hsr_time, hsl_time, hsr_index, hsl_index, time_acc] = findStridesAcc(ax, ay, az)
+% THis function Finds the peaks of the filtered acceleration data, which we interpret as
+% the instances of heel strike.
+% assuming trigno sensors attached with arrow pointing up...
+% ax axis: towards head
+% ay axis: toward left, when looking at subject backside
+% az axis: posterior
 
 
-for i=1:3
-    axf=filtfilt(bfa,afa,ax(i).data);
-    ayf=filtfilt(bfa,afa,ay(i).data);
-    azf=filtfilt(bfa,afa,az(i).data);
-    % amag(:,i)=(ax(i).data.^2+ay(i).data.^2+az(i).data.^2).^0.5; % unflitered acceleration magnitudes
-    amagf(:,i)=(axf.^2+ayf.^2+azf.^2).^0.5;
-end
+disp('Checking order of accelerometers: (R ankle, L ankle, Lumbar)');
+assert(strcmp(ax(1).label,'R ANKLE (ACC)'));
+assert(strcmp(ax(2).label,'L ANKLE (ACC)'));
+assert(strcmp(ax(3).label,'LUMBAR (ACC)'));
 
-if plots
-    figure()
-    for i = 1:3
-        subplot(4,1,i);
-        %Plots the raw acc data of x,y,z for each ankle and lumbar
-        plot(ax(1).time,[ax(i).data ay(i).data az(i).data]);
-        hold on;
-        %Plots the filtered acc data of x,y,z for each ankle and lumbar
-        %overlayed as dashes
-        plot(ax(1).time,[axf ayf azf],'--');
-        hold off
-        title(ax(i).label);
-        legend('ax_raw', 'ay_raw', 'az_raw','ax_filt','ay_filt','az_filt');
-    end
+disp('filtering Acceleration.')
+[bfa,afa]=butter(3,25/(ax(1).freq/2)); %Used to remove high-frequency noise above 25Hz. 3rd order butterworth
+
+for i=1:3 
+    % filter 25 hz
+    axf(:,i)=filtfilt(bfa,afa,ax(i).data);
+    ayf(:,i)=filtfilt(bfa,afa,ay(i).data);
+    azf(:,i)=filtfilt(bfa,afa,az(i).data);
+    amagf(:,i)=(axf(:,i).^2+ayf(:,i).^2+azf(:,i).^2).^0.5;
+    % detrended, filter 25 hz
+    axdf(:,i)=filtfilt(bfa,afa,detrend(ax(i).data));
+    aydf(:,i)=filtfilt(bfa,afa,detrend(ay(i).data));
+    azdf(:,i)=filtfilt(bfa,afa,detrend(az(i).data));
+    amagdf(:,i)=(axdf(:,i).^2+aydf(:,i).^2+azdf(:,i).^2).^0.5;
+    % no filter
+    axnf(:,i) = detrend(ax(i).data); 
+    aynf(:,i) = detrend(ay(i).data);
+    aznf(:,i) = detrend(az(i).data);
+    amagnf(:,i)=(ax(i).data.^2+ay(i).data.^2+az(i).data.^2).^0.5; % unflitered acceleration magnitudes
+    amagnf2(:,i)=(axnf(:,i).^2+aynf(:,i).^2+aznf(:,i).^2).^0.5; % unflitered acceleration magnitudes
     
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% amplitude ax normalize to max acceleration
+azdf_scaled = azdf./max(azdf);
+
+%% plot acceleration data
+% figure()
+% for i = 1:3 
+%     subplot(3,1,i);
+%     %Plots the raw acc data of x,y,z for each ankle and lumbar, as dashes
+%     plot(ax(1).time,[ax(i).data ay(i).data az(i).data],'--');
+%     hold on;
+%     %Plots the filtered acc data of x,y,z for each ankle and lumbar
+%     plot(ax(1).time,[axf(:,i) ayf(:,i) azf(:,i)]);
+%     hold off
+%     title(ax(i).label);
+%     legend('ax raw', 'ay raw', 'az raw','ax filt','ay filt','az filt');
+% end
+
+% figure() %Plots the filtered acc data of x,y,z
+% xLimits = [0 5];
+% i = 1;  % only R ankle
+% subplot(2,1,1);
+% plot(ax(1).time,[axf(:,i) ayf(:,i) azf(:,i)]);     %Plots the filtered acc data of x,y,z
+% title(ax(i).label); xlim(xLimits);
+% legend('ax filt','ay filt','az filt');
+% subplot(2,1,2);
+% plot(ax(1).time,amagf(:,i),'-'); %Plots the total acceleration
+% title('Magnitude'); xlim(xLimits);
+%
+% figure() %Plots the detrended, filtered acc data of x,y,z
+% xLimits = [0 5];
+% i = 1;  % only R ankle
+% subplot(2,1,1);
+% plot(ax(1).time,[axdf(:,i) aydf(:,i) azdf(:,i)]);     %Plots the detrended, filtered acc data of x,y,z
+% title(ax(i).label); xlim(xLimits);
+% legend('ax filt, detrend','ay filt, detrend','az filt, detrend');
+% subplot(2,1,2);
+% plot(ax(1).time,amagdf(:,i),'-'); %Plots the total acceleration
+% title('Magnitude'); xlim(xLimits);
+%  
+
+% figure() %Plots the unfiltered acc data of x,y,z
+% xLimits = [0 5];
+% i = 1;  % only R ankle
+% subplot(2,1,1);
+% plot(ax(1).time,[axnf(:,i) aynf(:,i) aznf(:,i)]);     %Plots the unfiltered acc data of x,y,z
+% title(ax(i).label); xlim(xLimits);
+% legend('ax ','ay','az ');
+% subplot(2,1,2);
+% i = 2;
+% plot(ax(1).time,[axnf(:,i) aynf(:,i) aznf(:,i)]);     %Plots the unfiltered acc data of x,y,z
+% %plot(ax(1).time,amagnf2(:,i),'-'); %Plots the total acceleration
+% title('L Ankle'); xlim(xLimits);
+
+
+% figure() %Plots the filtered detrended, scaled acc data of z
+% xLimits = [0 5];
+% figure(1)
+% plot(ax(1).time,azdf_scaled(:,1:2),'-');
+% xlim(xLimits);
+% legend('R Ankle', 'L Ankle')
+% title('Peaks of Acceleration Magnitudes, filtered,scaled')
+
+
 % Uses the magnitudes from filtered acc data and finds the peaks
-[hsr, hsrp]=findpeaks(amagf(:,1),'MinPeakHeight',2.,'MinPeakDistance',100); % [heel strike right ankle, time of strike]
-[hsl, hslp]=findpeaks(amagf(:,2),'MinPeakHeight',2.,'MinPeakDistance',100); % [heel strike left ankle, time of strike]
+% (representing heel strikes)
+% OLD: using peak of magnitude of acceleration (filtered, not detrended, not scaled):
+% [hsr_value, hsr_index]=findpeaks(amagf(:,1),'MinPeakHeight',2.,'MinPeakDistance',100); % [heel strike right ankle, time of strike]
+% [hsl_value, hsl_index]=findpeaks(amagf(:,2),'MinPeakHeight',2.,'MinPeakDistance',100); % [heel strike left ankle, time of strike]
+% CURRENT: using peak of Anterior-Posterior acceleration (z direction)
+[hsr_value, hsr_index]=findpeaks(azdf_scaled(:,1),'MinPeakHeight',0.6,'MinPeakDistance',100); % [heel strike right ankle, time of strike]
+[hsl_value, hsl_index]=findpeaks(azdf_scaled(:,2),'MinPeakHeight',0.6,'MinPeakDistance',100); % [heel strike left ankle, time of strike]
 
-if plots
-    % Plots the peaks as x's and o's
-    subplot(4,1,4);
-    plot(ax(1).time,amagf,'-');
-    hold on;
-    plot(ax(1).time(hsrp),hsr, 'o');
-    plot(ax(1).time(hslp),hsl,'x');
-    hold off;
-    legend('R Ankle', 'L Ankle', 'Lumbar')
-    title('Peaks of Acceleration Magnitudes, filtered')
+time_acc = ax(1).time; % acceleration time series
+hsr_time = time_acc(hsr_index); % time of instances of heel strike right
+hsl_time = time_acc(hsl_index); % time of instances of heel strike left
+
+% Uses the magnitudes from filtered acc data and finds the peaks
+% (representing toe off)
+% PENDING. I dont think I can easily do this. Will need a fancier
+% algorithm.
+
+%% Plots the peaks as x's and o's
+figure(1)
+plot(ax(1).time,azdf_scaled(:,1:2),'-');
+hold on;
+plot(ax(1).time(hsr_index),hsr_value, 'o');
+plot(ax(1).time(hsl_index),hsl_value,'x');
+hold off;
+legend('R Ankle', 'L Ankle')
+ylim([0 2]);
+title('Peaks of Acceleration Magnitudes, filtered')
+
+
 end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [EMG_envelope, EMG_label] = filterEMG(emg)
 % Filter the EMG data
-% Use 3 filters to remove non-EMG frequency range noise, drift, and
+% Use filters to remove non-EMG frequency range noise, drift, and
 % then get nice activation envelopes
 % e.g. for a 2000 Hz collection,
 %   350Hz = 350/(freq/2) = 350/(1000) = 0.35
 %     1Hz =   1/(freq/2) =   1/(1000) = 0.001
 %    10Hz =  10/(freq/2) =  10/(1000) = 0.01
-[b,a]=butter(4,350/(emg(1).freq/2),'low'); %Used to remove high-frequency noise above 350Hz
-[bb,aa]=butter(4,1/(emg(1).freq/2),'high'); %Used to remove low-frequency drift below 1Hz
-[bbb,aaa]=butter(4,10/(emg(1).freq/2),'low'); %Used to filter to 10Hz to get envelope
-emgdatar = zeros(size(emg(1).data));% preallocate for speed
-emgdatalabel = cell(1,12);% preallocate for speed
+BP = [10 500]; % bandpass filter parameters in Hz [low cutoff, high cutoff]
+LP = 10; % low pass filter for linear envelope, in Hz
+
+[b_BP,a_BP]=butter(4,BP/(emg(1).freq/2)); % bandpass filter
+[b_LP,a_LP]=butter(4,LP/(emg(1).freq/2),'low'); % linear envelope filter
+
+EMG_raw = zeros(size(emg(1).data));% preallocate for speed
+EMG_label = cell(1,12);% preallocate for speed
 for ii=1:12
-    emgdatar(:,ii)=emg(ii).data; %Raw emg data - Here just pulling the matrix of data out of the structure I loaded
-    emgdatalabel{ii}=emg(ii).label;
-end
-emgdatar = detrend(emgdatar,0); % remove DC offset
-EMfr=filtfilt(bb,aa,emgdatar); %Zero-shift filter removing drift first
-EMGr=filtfilt(b,a,EMfr); %Zero-shift filter removing high frequency noise
-EMGabs=abs(EMGr); %Rectify data (full wave)
-emgdata=filtfilt(bbb,aaa,EMGabs); %Filter to envelopes of activation
-
-if plots % plots the filtered emg data
-    figure()
-    for i = 1:12
-        subplot(12,1,i);
-        plot(emg(1).time,emgdata(:,i));
-        title(emg(i).label);
-    end
+    EMG_raw(:,ii)=emg(ii).data; %Raw emg data - Here just pulling the matrix of data out of the structure I loaded
+    EMG_label{ii}=emg(ii).label;
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Computes the average emg cycle
-emgtime=emg(1).time;
-for j=1:6
-    emgc(j)=avgcycle(emgtime,emgdata(:,j),ax(1).time(hsrp),10,50); %right leg muslces
-    emgc(6+j)=avgcycle(emgtime,emgdata(:,6+j),ax(2).time(hslp),10,50); % left leg muscles
-end
-lumbar = avgcycle(ax(3).time,amagf(:,3),ax(1).time(hsrp),10,50); % lumbar, relative to left leg heel strike
+EMG_raw     = detrend(EMG_raw,0);          % remove DC offset
+EMG_BP      = filtfilt(b_BP,a_BP,EMG_raw); % bandpass filter 
+EMG_abs     = abs(EMG_BP);                 % Rectify data (full wave)
+EMG_envelope= filtfilt(b_LP,a_LP,EMG_abs); % Filter to linear envelopes of activation
 
-
-%%%%%%%% if I need to switch sensors for left and right leg, do
-%%%%%%%% it here. ACTUALLY, DO IT ABOVE< WHEN YOU REARRANGE SENSORS.
-% either loop for all muscles (j = 1:6) or choose indiviudal muscle (e.g. j = 4)
-%   for j = 6; %4:5 %1:6; % 4; 
-%   emgc(j)=avgcycle(emgtime,emgdata(:,j),ax(2).time(hslp),10,50); %right leg muslces
-%   emgc(6+j)=avgcycle(emgtime,emgdata(:,6+j),ax(1).time(hsrp),10,50); % left leg muscles
-%   end
-%      disp(' ');
-%      disp('Switched accelerometer data for left and right legs, as they were switched during collection.')
-%      disp(' ');
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Normalize the EMG data to root-mean-squared
-for j=1:12
-    emgrms(j)=rms(emgdata(:,j));
-    normemg(:,j)=(emgc(j).avg)./(emgrms(j));
-    normemgstd(:,j)=(emgc(j).sd)./(emgrms(j));
-end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% outputs
-emgcyc = normemg;
-emgcycstd = normemgstd;
-emgcyclabel = emgdatalabel;
-emgcycfreq = emg(1).freq;
-%lumbarcyc = lumbar;
-end
-function xc = avgcycle(time,x,tc,hcf,lcf)
-% xc = avgcycle(x,tc,hcf,lcf)
-npts=101;
-% if (length(hcf)>0)
-%     [bhf,ahf]=butter(3,hcf/(x.freq/2),'high');
-%     xf=filtfilt(bhf,ahf,x.data);
-% else
-%     xf=x.data;
+%% plots EMG_envelope over time
+% figure()
+% for i = 1:12
+%     subplot(12,1,i);
+%     plot(emg(1).time,EMG_envelope(:,i));
+%     title(emg(i).label);
 % end
-% if (length(lcf)>0)
-%     [blf,alf]=butter(3,lcf/(x.freq/2));
-%     xf=filtfilt(blf,alf,abs(xf));
-% end
-xf=x;
-xc.cycles=zeros(npts,size(tc,1));
-for j=1:length(tc)-1
-    j1=find(time>tc(j));  j1=j1(1);
-    j2=find(time>tc(j+1));  j2=j2(1);
-    xc.cycles(:,j)=normcycle(xf(j1:j2),npts);
-    xc.period(j)=time(j2)-time(j1);
+
 end
-xc.avg=mean(xc.cycles')';
-xc.sd=std(xc.cycles')';
-% xc.label=x.label;
+function [EMG_sorted, EMG_label_sorted] = sortEMGsignals(EMG_envelope, EMG_label)
+% sometimes the EMG data is cleanly in R & L channels. Sometimes it is
+% in a different order. This ensures everything in its right strucutre.
+
+disp('Sorting to ensure EMG signals are in correct columns.')
+
+EMG_sorted = zeros(size(EMG_envelope)); % preallocate
+EMG_label_sorted = cell(1,12); % preallocate 
+for i = 1:12 % cycle through signals recorded
+    switch EMG_label{i}
+        case 'R TIBIALIS ANTERIOR' % put in column 1
+            EMG_sorted(:,1) = EMG_envelope(:,i);
+            EMG_label_sorted{1} = EMG_label{i};
+        case 'R GASTROCNEMIUS MEDIAL HEAD' % column 2
+            EMG_sorted(:,2) = EMG_envelope(:,i);
+            EMG_label_sorted{2} = EMG_label{i};
+        case 'R SOLEUS' % column 3
+            EMG_sorted(:,3) = EMG_envelope(:,i);
+            EMG_label_sorted{3} = EMG_label{i};
+        case 'R VASTUS LATERALIS' % column 4
+            EMG_sorted(:,4) = EMG_envelope(:,i);
+            EMG_label_sorted{4} = EMG_label{i};
+        case 'R RECTUS FEMORIS' % column 5
+            EMG_sorted(:,5) = EMG_envelope(:,i);
+            EMG_label_sorted{5} = EMG_label{i};
+        case 'R SEMITENDINOSUS' % column 6
+            EMG_sorted(:,6) = EMG_envelope(:,i);
+            EMG_label_sorted{6} = EMG_label{i};
+        case 'L TIBIALIS ANTERIOR' % column 7
+            EMG_sorted(:,7) = EMG_envelope(:,i);
+            EMG_label_sorted{7} = EMG_label{i};
+        case 'L GASTROCNEMIUS MEDIAL HEAD' % column 8
+            EMG_sorted(:,8) = EMG_envelope(:,i);
+            EMG_label_sorted{8} = EMG_label{i};
+        case 'L SOLEUS' % column 9
+            EMG_sorted(:,9) = EMG_envelope(:,i);
+            EMG_label_sorted{9} = EMG_label{i};
+        case 'L VASTUS LATERALIS' % column 10
+            EMG_sorted(:,10) = EMG_envelope(:,i);
+            EMG_label_sorted{10} = EMG_label{i};
+        case 'L RECTUS FEMORIS' % column 11
+            EMG_sorted(:,11) = EMG_envelope(:,i);
+            EMG_label_sorted{11} = EMG_label{i};
+        case 'L SEMITENDINOSUS' % column 12
+            EMG_sorted(:,12) = EMG_envelope(:,i);
+            EMG_label_sorted{12} = EMG_label{i};
+    end    
+end
+
+
+end
+function [gaitCycle,nStrides_right,nStrides_left] = findStridesEMG(time,EMG,hsr_time,hsl_time)
+% divides the EMG signals insto strides
+% time: vector of time
+% EMG: vector of EMG data
+% hs_index: indices of when heel strike events happened
+npts = 101; % points per gait cycle
+nStrides_right = length(hsr_time)-1; % number of complete gait cycles
+nStrides_left  = length(hsl_time)-1; 
+gaitCycle = cell(1,12);
+
+for m = 1:6 %sort through each muscle
+   % RIGHT LEG
+   emg1 = EMG(:,m);
+   gaitCycle{m} = zeros(npts,nStrides_right); % preallocated
+   for j = 1:nStrides_right
+       j1 = find(time>hsr_time(j),1); % get index of time at first heel strike
+       j2 = find(time>hsr_time(j+1),1); % get index of time at second heel strike
+       gaitCycle{m}(:,j) = normcycle(emg1(j1:j2),npts); % time normalize
+   end
+   
+   % LEFT LEG
+   emg1 = EMG(:,6+m);
+   gaitCycle{6+m} = zeros(npts,nStrides_left); 
+   for j = 1:nStrides_left
+       j1 = find(time>hsl_time(j),1); % get index of time at first heel strike
+       j2 = find(time>hsl_time(j+1),1); % get index of time at second heel strike
+       gaitCycle{6+m}(:,j) = normcycle(emg1(j1:j2),npts); % time normalize
+   end
+end
+
 end
 function yf = normcycle(y,n,x)
 % yf = normcycle(y,n,x)
