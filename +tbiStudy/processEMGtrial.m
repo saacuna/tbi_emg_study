@@ -109,6 +109,11 @@ tr(1).trialType = TT;
 acc(1).trialType = TT;
 disp(' ');
 
+% generate filenames
+acc(1).filename = [tr.subject_type sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType '_ACC'];
+tr(1).filename = [tr.subject_type sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType '_EMG'];
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% STEP 3: generate emg, ax, ay, az data
@@ -147,7 +152,6 @@ clear hsr hsl;
 
 % SAVE acc data at this point, just in case EMG processing fails, we already have heel strikes identified.
 % save ACC file to original folder:
-acc(1).filename = [tr.subject_type sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType '_ACC'];
 save([inpath acc.filename], 'acc');
 disp(['Acceleration data saved as: ' acc.filename]);
 disp(['in folder: ' inpath]);
@@ -217,8 +221,6 @@ plotEMG(fig,tr,inpath);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STEP 7: save EMG file to original folder
-%tr(1).filename = ['hyn' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType];
-tr(1).filename = [tr.subject_type sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType '_EMG'];
 save([inpath tr.filename], 'tr');
 disp(['EMG data saved as: ' tr.filename]);
 disp(['in folder: ' inpath]);
@@ -574,7 +576,8 @@ while loop
     disp('2: Change findpeaks Parameters and find again'); 
     disp('3: dual strategy (get dual heel strikes and sort)'); 
     disp('4: manually find/remove peaks'); 
-    disp('5: Abort');
+    disp('5: load previous heel strike data');
+    disp('6: Abort');
     heelStrikeCheck = input('Input:  ','s');
     
     switch heelStrikeCheck
@@ -698,7 +701,20 @@ while loop
                 end    
             end %loop4 
 
-        case '5' %'Abort'
+        case '5' % load previous heel strike data
+            path_orig = pwd;
+            cd(inpath);            
+            if exist([acc.filename '.mat'],'file') == 2
+                acc_previous = load(acc.filename);
+                hsr.time  = acc_previous.acc.hsr.time;
+                hsr.value = acc_previous.acc.hsr.value;
+                hsl.time  = acc_previous.acc.hsl.time;
+                hsl.value = acc_previous.acc.hsl.value;
+            else
+                disp('Previous heel strike data could not be found.');
+            end
+            cd(path_orig);
+        case '6' %'Abort'
             error('User aborted processing heel strikes.');
         otherwise
             disp('unkown response.');disp(' ');
