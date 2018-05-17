@@ -1,8 +1,8 @@
 function [tr, inpath] = processEMGtrial(inpath,infile)
 % Filename: processEMGtrial.m
 % Author:   Samuel Acuna
-% Date:     24 May 2016
-% Updated:  01 May 2018
+% Created:     24 May 2016
+% Updated:  17 May 2018
 % Description:
 % This class file is used to convert EMG data from a text file into a
 % matlab structure 
@@ -60,12 +60,14 @@ end
 
 % setup empty trial structure
 tr= struct(...
+    'subject_type',[],...
     'subject_id',[],...
     'testPoint',[],...
     'trialType',[],...
     'filename',[]);
 % setup empty acceleration structure
 acc= struct(...
+    'subject_type',[],...
     'subject_id',[],...
     'testPoint',[],...
     'trialType',[],...
@@ -74,11 +76,14 @@ acc= struct(...
 c = strsplit(infile,'_'); % parse out info from file name
 
 try % subject ID
+    subject_type = c{1}(1:3);
     ID = str2num(c{1}(4:end));
     disp(['Subject ID: ' num2str(ID)])
 catch
     ID = setSubjectID();
 end
+tr(1).subject_type = subject_type;
+acc(1).subject_type = subject_type;
 tr(1).subject_id = ID;
 acc(1).subject_id = ID;
 
@@ -120,22 +125,38 @@ disp('conversion completed.');
 %% STEP 4: Identify steps from acceleration data
 disp('Finding steps in the acceleration data...');
 
-[hsr_time, hsl_time, hsr_index, hsl_index, time_acc] = findStridesAcc(ax, ay, az); % get indexes of heel strike for R and L ankles
+% filter acc: LP 25hz, detrended, and scaled -1 to 1. Only keeping Z direction for Heel strikes
+[z_acc, time_acc] = filterACC(ax, ay, az);
 
-acc(1).ax = ax; % save raw acceleration data, to use for later...
-acc(1).ay = ay;
-acc(1).az = az;
-acc(1).hsr_index = hsr_index; % sync indexes with acc(1).time to get actual times
-acc(1).hsl_index = hsl_index;
-acc(1).hsr_time = hsr_time;
-acc(1).hsl_time = hsl_time;
+% save acc data
+acc(1).x_raw = ax; % save raw acceleration data, to use for later...
+acc(1).y_raw = ay;
+acc(1).z_raw = az;
+acc(1).z_filt = z_acc;
 acc(1).time = time_acc;
-clear ax ay az hsr_index hsl_index time_acc
+clear ax ay az time_acc
+
+% use algorithm to detect heel strike. MUST MANUALLY VALIDATE IT IS OKAY.
+[hsr, hsl, param] = findHeelStrikes(acc,tr,inpath);
+acc(1).hsr.time = hsr.time;
+acc(1).hsl.time = hsl.time;
+acc(1).hsr.value = hsr.value;
+acc(1).hsl.value = hsl.value;
+acc(1).param = param; %peak finding parameters
+clear hsr hsl;
+
+% SAVE acc data at this point, just in case EMG processing fails, we already have heel strikes identified.
+% save ACC file to original folder:
+acc(1).filename = [tr.subject_type sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType '_ACC'];
+save([inpath acc.filename], 'acc');
+disp(['Acceleration data saved as: ' acc.filename]);
+disp(['in folder: ' inpath]);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% STEP 5: filter EMG, amplitude normalize, and divide into steps (time normalize to step)
 disp('Filtering (BP 10-500 Hz), rectifying, linear envelopes (10 Hz), amplitude normalizing (peaks), time normalizing into steps.');
-time_emg = emg(1).time;
+tr(1).emgTime = emg(1).time;
 [EMG_envelope, EMG_label] = filterEMG(emg); %BP filter 10-500 Hz, rectify, LP filter 10 Hz
 [EMG_sorted, EMG_label_sorted] = sortEMGsignals(EMG_envelope, EMG_label); % rearrange channels to match R & L legs
 
@@ -155,77 +176,56 @@ EMG_normalized = EMG_sorted./max(EMG_sorted); % current: normalize to Peak of li
 % %  on the incorrect muscles
 
 disp('Calculated EMG data by gait cycles.')
-[EMG_gaitCycles,nStrides_right,nStrides_left] = findStridesEMG(time_emg,EMG_normalized,hsr_time,hsl_time); % divide into steps and time normalize to 101 pts/cycle
+[EMG_strides,nStrides_right,nStrides_left] = findStridesEMG(tr(1).emgTime,EMG_normalized,acc(1).hsr.time,acc(1).hsl.time); % divide into steps and time normalize to 101 pts/cycle
 
 tr(1).emgLabel = EMG_label_sorted;
 tr(1).emgFreq = emg(1).freq;
-tr(1).emgSteps = EMG_gaitCycles;
-clear emg;
+tr(1).emgStrides = EMG_strides;
+tr(1).nStrides_left = nStrides_left;
+tr(1).nStrides_right = nStrides_right;
+disp(['Number of strides [L,R]: ' num2str(nStrides_left) '  ' num2str(nStrides_right)]);
+clear emg EMG_normalized hsr_time hsl_time EMG_envelope EMG_label EMG_sorted EMG_label_sorted EMG_strides nStrides_left nStrides_right;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% STEP 6: save concatentated and average EMG by steps
 % created concatenated pattern across all steps
 EMG_concat = cell(1,12);
 for i = 1:12
-    steps = size(EMG_gaitCycles{1}(1:100,:),2);
-    EMG_concat1 = EMG_gaitCycles{i}(1:100,:);% cut off last time point for each step (since it is first of next step)
-    EMG_concat{i} = reshape(EMG_concat1,[steps*100,1]); % reshape into single vector
+    strides = size(tr.emgStrides{i}(1:100,:),2);
+    EMG_concat1 = tr.emgStrides{i}(1:100,:);% cut off last time point for each step (since it is first of next step)
+    EMG_concat{i} = reshape(EMG_concat1,[strides*100,1]); % reshape into single vector
+    EMG_concat{i} = [EMG_concat{i}; tr.emgStrides{i}(end,end)]; % add last time point of last step
 end
 tr(1).emgConcat = EMG_concat;
+clear EMG_concat1 EMG_concat strides;
 
 % find average gait cycle pattern across all steps
 disp('calculating emg data over average gait cycle....');
-EMG_avg = zeros(size(EMG_gaitCycles{1},1),12);
-EMG_std = zeros(size(EMG_gaitCycles{1},1),12);
+EMG_avg = zeros(size(tr.emgStrides{1},1),12);
+EMG_std = zeros(size(tr.emgStrides{1},1),12);
 for i = 1:12
-    EMG_avg(:,i) = mean(EMG_gaitCycles{i}')';
-    EMG_std(:,i) = std(EMG_gaitCycles{i}')';
+    EMG_avg(:,i) = mean(tr.emgStrides{i}')';
+    EMG_std(:,i) = std(tr.emgStrides{i}')';
 end
 tr(1).emgData = EMG_avg; % save average gait cycle
 tr(1).emgStd = EMG_std;
+clear EMG_avg EMG_std;
 
-% plot average gait cycle and steps overlaid
-figure(2)
-for j = 1:6
-    subplot(6,2,2*j)
-    shadedErrorBar([0:100]',EMG_avg(:,j),EMG_std(:,j));%,{'color',tbiStudy.plot.emgPlotColors{1}},tbiStudy.plot.transparentErrorBars);
-    hold on
-    for i = 1:nStrides_right
-        plot([0:100]',EMG_gaitCycles{j}(:,i))
-    end
-    hold off
-    title(EMG_label_sorted{j})
-    
-    subplot(6,2,2*j-1)
-    shadedErrorBar([0:100]',EMG_avg(:,6+j),EMG_std(:,6+j));%,{'color',tbiStudy.plot.emgPlotColors{1}},tbiStudy.plot.transparentErrorBars);
-    hold on
-    for i = 1:nStrides_left
-        plot([0:100]',EMG_gaitCycles{6+j}(:,i))
-    end
-    hold off
-    title(EMG_label_sorted{6+j})
-end
-fig = gcf; tightfig(gcf);
-suptitle(['TBI-' sprintf('%02d',tr(1).subject_id) ' TP' sprintf('%02d',tr(1).testPoint) ' ' tr(1).trialType])
-fig.PaperUnits = 'centimeters'; fig.PaperPosition = [0 0 25 30]; 
-filename = ['tbi' sprintf('%02d',tr(1).subject_id) '_tp' sprintf('%02d',tr(1).testPoint) '_' tr(1).trialType '_avg'];
-path_orig = cd(inpath);
-print(filename,'-dpng','-painters','-loose');
-cd(path_orig);
-disp(['Plot of EMG over gait cycles saved as: ' filename '.png']);
+% plot average gait cycle and steps overlaid, and save to file
+fig = figure(2);
+plotEMG(fig,tr,inpath);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% STEP 7: save file to original folder
+% STEP 7: save EMG file to original folder
 %tr(1).filename = ['hyn' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType];
-tr(1).filename = ['tbi' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType '_EMG'];
+tr(1).filename = [tr.subject_type sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType '_EMG'];
 save([inpath tr.filename], 'tr');
 disp(['EMG data saved as: ' tr.filename]);
 disp(['in folder: ' inpath]);
 
-acc(1).filename = ['tbi' sprintf('%02d',tr.subject_id) '_tp' sprintf('%02d',tr.testPoint) '_' tr.trialType '_ACC'];
-save([inpath acc.filename], 'acc');
-disp(['Acceleration data saved as: ' acc.filename]);
-disp(['in folder: ' inpath]);
+%% append trial to database (temporary)
+tbiStudy.appendTrialInDatabase(tr);
+tbiStudy.appendTrialInDatabase(acc);
 end
 
 
@@ -399,14 +399,11 @@ line=fgetl(fid);    jcolon=find(line==':');	hdr.hpcutoff=sscanf(line(jcolon+1:en
 line=fgetl(fid);    jcolon=find(line==':');	hdr.lpcutoff=sscanf(line(jcolon+1:end),'%f');
 fseek(fid,position,'bof');
 end
-function [hsr_time, hsl_time, hsr_index, hsl_index, time_acc] = findStridesAcc(ax, ay, az)
-% THis function Finds the peaks of the filtered acceleration data, which we interpret as
-% the instances of heel strike.
+function [acc_output, time_acc] = filterACC(ax, ay, az)
 % assuming trigno sensors attached with arrow pointing up...
 % ax axis: towards head
 % ay axis: toward left, when looking at subject backside
 % az axis: posterior
-
 
 disp('Checking order of accelerometers: (R ankle, L ankle, Lumbar)');
 assert(strcmp(ax(1).label,'R ANKLE (ACC)'));
@@ -418,28 +415,37 @@ disp('filtering Acceleration.')
 
 for i=1:3 
     % filter 25 hz
-    axf(:,i)=filtfilt(bfa,afa,ax(i).data);
-    ayf(:,i)=filtfilt(bfa,afa,ay(i).data);
-    azf(:,i)=filtfilt(bfa,afa,az(i).data);
-    amagf(:,i)=(axf(:,i).^2+ayf(:,i).^2+azf(:,i).^2).^0.5;
+    %axf(:,i)=filtfilt(bfa,afa,ax(i).data);
+    %ayf(:,i)=filtfilt(bfa,afa,ay(i).data);
+    %azf(:,i)=filtfilt(bfa,afa,az(i).data);
+    %amagf(:,i)=(axf(:,i).^2+ayf(:,i).^2+azf(:,i).^2).^0.5;
     % detrended, filter 25 hz
-    axdf(:,i)=filtfilt(bfa,afa,detrend(ax(i).data));
-    aydf(:,i)=filtfilt(bfa,afa,detrend(ay(i).data));
+    %axdf(:,i)=filtfilt(bfa,afa,detrend(ax(i).data));
+    %aydf(:,i)=filtfilt(bfa,afa,detrend(ay(i).data));
     azdf(:,i)=filtfilt(bfa,afa,detrend(az(i).data));
-    amagdf(:,i)=(axdf(:,i).^2+aydf(:,i).^2+azdf(:,i).^2).^0.5;
+    %amagdf(:,i)=(axdf(:,i).^2+aydf(:,i).^2+azdf(:,i).^2).^0.5;
     % no filter
-    axnf(:,i) = detrend(ax(i).data); 
-    aynf(:,i) = detrend(ay(i).data);
-    aznf(:,i) = detrend(az(i).data);
-    amagnf(:,i)=(ax(i).data.^2+ay(i).data.^2+az(i).data.^2).^0.5; % unflitered acceleration magnitudes
-    amagnf2(:,i)=(axnf(:,i).^2+aynf(:,i).^2+aznf(:,i).^2).^0.5; % unflitered acceleration magnitudes
+    %axnf(:,i) = detrend(ax(i).data); 
+    %aynf(:,i) = detrend(ay(i).data);
+    %aznf(:,i) = detrend(az(i).data);
+    %amagnf(:,i)=(ax(i).data.^2+ay(i).data.^2+az(i).data.^2).^0.5; % unflitered acceleration magnitudes
+    %amagnf2(:,i)=(axnf(:,i).^2+aynf(:,i).^2+aznf(:,i).^2).^0.5; % unflitered acceleration magnitudes
     
 end
 
 % amplitude ax normalize to max acceleration
 azdf_scaled = azdf./max(azdf);
 
-%% plot acceleration data
+% acceleration time series
+time_acc = ax(1).time; 
+
+% Uses the magnitudes from filtered acc data and finds the peaks
+% (representing heel strikes)
+% OLD: using peak of magnitude of acceleration (amagf: filtered, not detrended, not scaled):
+% CURRENT: using peak of Anterior-Posterior acceleration (z direction)
+acc_output = azdf_scaled(:,1:2);
+
+%% plot acceleration data, just to examine it... will need to uncomment some above values
 % figure()
 % for i = 1:3 
 %     subplot(3,1,i);
@@ -497,38 +503,260 @@ azdf_scaled = azdf./max(azdf);
 % xlim(xLimits);
 % legend('R Ankle', 'L Ankle')
 % title('Peaks of Acceleration Magnitudes, filtered,scaled')
+end
+function [hsr, hsl, param] = findHeelStrikes(acc,tr,inpath)
+% tries to use algorithm to detect heel strike. MUST MANUALLY VALIDATE IT IS OKAY.
+
+% get acceleration signals with heel strikes in it
+acc_r = acc.z_filt(:,1); % right leg
+acc_l = acc.z_filt(:,2); % left  leg
+
+% peak finding parameters, default
+param.MinPeakHeight = 0.6;
+param.MinPeakDistance = 0.8;
+param.MinPeakProminence = 0;
+param.Threshold = 0;
+param.dualStrategyUsed = 0;
+param.manualStrategyUsed = 0;
+
+% initially try to find peaks
+[hsr, hsl] = findpeaksACC(acc_r,acc_l,acc.time,param); 
+
+% plot acceleration signals for R & L heels
+fig1 = figure(1);
+color_r = [0.8500    0.3250    0.0980]; %red
+color_l = [     0    0.4470    0.7410]; %blue
+symbol_r = 'kx';
+symbol_l = 'ko';
+ylimits = [-1 2];
+xlimits1 = [0 20.5]; xlimits2 = [20 40.5]; xlimits3 = [40 60.5];
+
+t1_start = 1; t1_end = find(acc.time <= xlimits1(2),1,'last'); % 0-20.5 seconds
+t2_start = find(acc.time >= xlimits2(1),1); t2_end = find(acc.time <= xlimits2(2),1,'last'); % 20 - 40.5 seconds
+t3_start = find(acc.time >= xlimits3(1),1); t3_end = length(acc.time); % 40 - 60 seconds
+t1_start_hsr = 1; t1_end_hsr = find(hsr.time <= xlimits1(2),1,'last');
+t2_start_hsr = find(hsr.time >= xlimits2(1),1); t2_end_hsr = find(hsr.time <= xlimits2(2),1,'last');
+t3_start_hsr = find(hsr.time >= xlimits3(1),1); t3_end_hsr = length(hsr.time);
+t1_start_hsl = 1; t1_end_hsl = find(hsl.time <= xlimits1(2),1,'last');
+t2_start_hsl = find(hsl.time >= xlimits2(1),1); t2_end_hsl = find(hsl.time <= xlimits2(2),1,'last');
+t3_start_hsl = find(hsl.time >= xlimits3(1),1); t3_end_hsl = length(hsl.time);
+
+fig1 = figure(1);
+subplot(3,1,1);
+h1t1_r = plot(acc.time(t1_start:t1_end),acc_r(t1_start:t1_end),'color',color_r); hold on;
+h1t1_l = plot(acc.time(t1_start:t1_end),acc_l(t1_start:t1_end),'color',color_l);
+h2t1_hsr = plot(hsr.time(t1_start_hsr:t1_end_hsr),hsr.value(t1_start_hsr:t1_end_hsr),symbol_r);
+h2t1_hsl = plot(hsl.time(t1_start_hsl:t1_end_hsl),hsl.value(t1_start_hsl:t1_end_hsl),symbol_l); hold off;
+xlim(xlimits1); ylim(ylimits); title('FIND HEEL STRIKES: 0 - 20 sec');
+legend([h1t1_r, h1t1_l, h2t1_hsr, h2t1_hsl],{'R Ankle Acc', 'L Ankle Acc', 'R Heel Strike', 'L Heel Strike'},'location','southeast','orientation','horizontal');
+
+subplot(3,1,2);
+h1t2_r = plot(acc.time(t2_start:t2_end),acc_r(t2_start:t2_end),'color',color_r); hold on;
+h1t2_l = plot(acc.time(t2_start:t2_end),acc_l(t2_start:t2_end),'color',color_l);
+h2t2_hsr = plot(hsr.time(t2_start_hsr:t2_end_hsr),hsr.value(t2_start_hsr:t2_end_hsr),symbol_r);
+h2t2_hsl = plot(hsl.time(t2_start_hsl:t2_end_hsl),hsl.value(t2_start_hsl:t2_end_hsl),symbol_l); hold off;
+xlim(xlimits2); ylim(ylimits); title('FIND HEEL STRIKES: 20 - 40 sec');
+subplot(3,1,3);
+h1t3_r = plot(acc.time(t3_start:t3_end),acc_r(t3_start:t3_end),'color',color_r); hold on;
+h1t3_l = plot(acc.time(t3_start:t3_end),acc_l(t3_start:t3_end),'color',color_l);
+h2t3_hsr = plot(hsr.time(t3_start_hsr:t3_end_hsr),hsr.value(t3_start_hsr:t3_end_hsr),symbol_r);
+h2t3_hsl = plot(hsl.time(t3_start_hsl:t3_end_hsl),hsl.value(t3_start_hsl:t3_end_hsl),symbol_l); hold off;
+xlim(xlimits3); ylim(ylimits); title('FIND HEEL STRIKES: 40 - 60 sec');
+
+set(fig1, 'Position', get(0, 'Screensize'));
+
+% CHECK heel strike algorithm. If it is not satisfactory, change
+% parameters or do find heel strikes manually
+loop = 1;
+while loop
+    disp('Are the heel strikes accurate? (able to continue processing?)');
+    disp('1: Good'); 
+    disp('2: Change findpeaks Parameters and find again'); 
+    disp('3: dual strategy (get dual heel strikes and sort)'); 
+    disp('4: manually find/remove peaks'); 
+    disp('5: Abort');
+    heelStrikeCheck = input('Input:  ','s');
+    
+    switch heelStrikeCheck
+        case '1' %'Good'
+            disp('User specifies that heel strikes are accurate.');
+            loop = 0; % exit loop
+        case '2' %'Change findpeaks Parameters'
+            prompt = {'MinPeakHeight','MinPeakDistance','MinPeakProminence','Threshold'};
+            prompt_title = 'Adjust findpeaks parameters';
+            prompt_defaultAnswer = {num2str(param.MinPeakHeight),num2str(param.MinPeakDistance),num2str(param.MinPeakProminence),num2str(param.Threshold)};
+            prompt_answer = inputdlg(prompt,prompt_title,[1 60],prompt_defaultAnswer);
+            if isempty(prompt_answer)
+                disp('user canceled. No changes to parameters.'); 
+            else
+                param.MinPeakHeight = str2num(prompt_answer{1});
+                param.MinPeakDistance = str2num(prompt_answer{2});
+                param.MinPeakProminence = str2num(prompt_answer{3});
+                param.Threshold = str2num(prompt_answer{4});
+                [hsr, hsl] = findpeaksACC(acc_r,acc_l,acc.time,param); % find peaks with new parameters
+            end 
+        case '3' % dual strategy (get every peak and sort)
+            loop3 = 1;
+            while loop3
+                disp('Using the dual strategy (get dual heel strikes and take every other one)');
+                disp('Heel strikes must first be identified at every step.');
+                disp('Starting on RIGHT LEG (red X) or LEFT LEG (blue O)?   (first heel strike with stance phase)');
+                disp('R: right leg,  L: left leg,  A: abort this strategy')
+                startingHeel = input('Input:  ','s');
+                switch startingHeel
+                    case {'R','r'}
+                        loop3 = 0;
+                        param.dualStrategyUsed = 1;
+                        hsr.time  = hsr.time(1:2:end);
+                        hsr.value = hsr.value(1:2:end);
+                        hsl.time  = hsl.time(2:2:end);
+                        hsl.value  = hsl.value(2:2:end);
+                    case {'L','l'}
+                        loop3 = 0;
+                        param.dualStrategyUsed = 1;
+                        hsr.time  = hsr.time(2:2:end);
+                        hsr.value = hsr.value(2:2:end);
+                        hsl.time  = hsl.time(1:2:end);
+                        hsl.value = hsl.value(1:2:end);
+                    case {'A','a'}
+                        loop3 = 0; param.dualStrategyUsed = 0;
+                        disp('Aborting this strategy.'); disp(' ');
+                    otherwise
+                        disp('Unknown input.'); disp(' ');
+                end % switch
+            end %while loop3
+        case '4' % manually find and remove peaks
+            loop4 = 1;
+            while loop4
+                disp('Manually find and remove peaks, using ginput function.');
+                disp('Using RIGHT LEG (red X) or LEFT LEG (blue O)?');
+                disp('R: right leg,  L: left leg,  A: abort this strategy')
+                legChoice = input('Input:  ','s');
+                switch legChoice
+                    case {'R','r'} % right leg
+                        hs_time = hsr.time; hs_value = hsr.value; hs_acc = acc_r; % pull values for processing
+                    case {'L','l'} % left leg
+                        hs_time = hsl.time; hs_value = hsl.value; hs_acc = acc_l; % pull values
+                    case {'A','a'} % abort
+                        disp('Aborting this strategy.'); disp(' ');
+                        break;
+                    otherwise
+                        disp('Unknown input. Check capitalization.'); disp(' ');
+                        break;
+                end    
+                        
+                loop4 = 0;
+                param.manualStrategyUsed = 1;
+                disp(' '); disp('Specify time windows on plot:');
+                disp('DELETE PEAKS: Select pairs of x-values before and after existing peaks');
+                disp('ADD PEAK: select pair of x-values where a peak should be (the maximum of that time window).');
+                disp('Press enter when done selecting.');
+                [x ~] = ginput(); % get values from plot
+                
+                if isempty(x) || (length(x) == 1)
+                    disp('Not enough points selected.')
+                    break;
+                end
+                
+                if ~isEven(length(x)) % if odd, dont consider the last data point
+                    x = x(1:end-1);
+                end
+                
+                nWindows = length(x)/2; % number of time windows chosen
+                disp(['Number of selected time windows: ' num2str(nWindows)]);
+                
+                for i = 1:2:length(x) %cycle through all chosen time windows
+                    
+                    % determine if peak exists in this time window
+                    a = find(hs_time > x(i) & hs_time < x(i+1));
+                    
+                    if ~isempty(a) % remove peaks in this window
+                        hs_time(a) = [];
+                        hs_value(a) = [];
+                    else % add a peak inside this time window at max value of the window
+                        t_start_new = find(acc.time >= x(i),1);
+                        t_end_new = find(acc.time <= x(i+1),1,'last');
+                        
+                        [hs_value_new, index] = max(hs_acc(t_start_new:t_end_new)); % new peak
+                        hs_time_new = acc.time(t_start_new+index-1); % new time of peak
+                        
+                        a2 = find(hs_time < x(i),1,'last'); % is this the first heel strike in the data?
+                        if isempty(a2) % put first
+                            hs_time = [hs_time_new; hs_time];
+                            hs_value = [hs_value_new; hs_value];
+                        else % insert into vector
+                            hs_time = [hs_time(1:a2); hs_time_new; hs_time(a2+1:end)];
+                            hs_value = [hs_value(1:a2); hs_value_new; hs_value(a2+1:end)];
+                        end
+                    end
+                end
+                switch legChoice %reinsert values
+                    case {'R','r'} % right leg
+                        hsr.time = hs_time; hsr.value = hs_value; 
+                    case {'L','l'} % left leg
+                        hsl.time = hs_time; hsl.value = hs_value;
+                end    
+            end %loop4 
+
+        case '5' %'Abort'
+            error('User aborted processing heel strikes.');
+        otherwise
+            disp('unkown response.');disp(' ');
+    end %switch
+    
+    % replot:
+    t1_start_hsr = 1; t1_end_hsr = find(hsr.time <= xlimits1(2),1,'last');
+    t2_start_hsr = find(hsr.time >= xlimits2(1),1); t2_end_hsr = find(hsr.time <= xlimits2(2),1,'last');
+    t3_start_hsr = find(hsr.time >= xlimits3(1),1); t3_end_hsr = length(hsr.time);
+    t1_start_hsl = 1; t1_end_hsl = find(hsl.time <= xlimits1(2),1,'last');
+    t2_start_hsl = find(hsl.time >= xlimits2(1),1); t2_end_hsl = find(hsl.time <= xlimits2(2),1,'last');
+    t3_start_hsl = find(hsl.time >= xlimits3(1),1); t3_end_hsl = length(hsl.time);
+    figure(fig1);
+    subplot(3,1,1); delete(h2t1_hsr); delete(h2t1_hsl); hold on; 
+    h2t1_hsr = plot(hsr.time(t1_start_hsr:t1_end_hsr),hsr.value(t1_start_hsr:t1_end_hsr),symbol_r);
+    h2t1_hsl = plot(hsl.time(t1_start_hsl:t1_end_hsl),hsl.value(t1_start_hsl:t1_end_hsl),symbol_l); hold off;
+    xlim(xlimits1); ylim(ylimits); legend([h1t1_r, h1t1_l, h2t1_hsr, h2t1_hsl],{'R Ankle Acc', 'L Ankle Acc', 'R Heel Strike', 'L Heel Strike'},'location','southeast','orientation','horizontal');
+    subplot(3,1,2); delete(h2t2_hsr); delete(h2t2_hsl); hold on; 
+    h2t2_hsr = plot(hsr.time(t2_start_hsr:t2_end_hsr),hsr.value(t2_start_hsr:t2_end_hsr),symbol_r);
+    h2t2_hsl = plot(hsl.time(t2_start_hsl:t2_end_hsl),hsl.value(t2_start_hsl:t2_end_hsl),symbol_l); hold off;
+    xlim(xlimits2); ylim(ylimits);
+    subplot(3,1,3); delete(h2t3_hsr); delete(h2t3_hsl); hold on; 
+    h2t3_hsr = plot(hsr.time(t3_start_hsr:t3_end_hsr),hsr.value(t3_start_hsr:t3_end_hsr),symbol_r);
+    h2t3_hsl = plot(hsl.time(t3_start_hsl:t3_end_hsl),hsl.value(t3_start_hsl:t3_end_hsl),symbol_l); hold off;
+    xlim(xlimits3); ylim(ylimits);
+end %while
+
+% save fig
+fig = gcf; %tightfig(gcf);
+suptitle([tr.subject_type '-' sprintf('%02d',tr(1).subject_id) ' TP' sprintf('%02d',tr(1).testPoint) ' ' tr(1).trialType])
+fig.PaperUnits = 'centimeters'; fig.PaperPosition = [0 0 30 15]; 
+filename = [tr.subject_type sprintf('%02d',tr(1).subject_id) '_tp' sprintf('%02d',tr(1).testPoint) '_' tr(1).trialType '_HS'];
+path_orig = pwd;
+cd(inpath);
+print(filename,'-dpng','-painters','-loose');
+cd(path_orig);
+disp(['Plot of HEEL STRIKES saved as: ' filename '.png']);
+close(1);
 
 
-% Uses the magnitudes from filtered acc data and finds the peaks
-% (representing heel strikes)
-% OLD: using peak of magnitude of acceleration (filtered, not detrended, not scaled):
-% [hsr_value, hsr_index]=findpeaks(amagf(:,1),'MinPeakHeight',2.,'MinPeakDistance',100); % [heel strike right ankle, time of strike]
-% [hsl_value, hsl_index]=findpeaks(amagf(:,2),'MinPeakHeight',2.,'MinPeakDistance',100); % [heel strike left ankle, time of strike]
-% CURRENT: using peak of Anterior-Posterior acceleration (z direction)
-[hsr_value, hsr_index]=findpeaks(azdf_scaled(:,1),'MinPeakHeight',0.6,'MinPeakDistance',100); % [heel strike right ankle, time of strike]
-[hsl_value, hsl_index]=findpeaks(azdf_scaled(:,2),'MinPeakHeight',0.6,'MinPeakDistance',100); % [heel strike left ankle, time of strike]
+end
+function [hsr, hsl] = findpeaksACC(acc_r,acc_l,time,param)
+% find peaks in an acceleration signal for both legs 
 
-time_acc = ax(1).time; % acceleration time series
-hsr_time = time_acc(hsr_index); % time of instances of heel strike right
-hsl_time = time_acc(hsl_index); % time of instances of heel strike left
+% get times of heel strike for R and L ankles
+    
+    % Uses the magnitudes from filtered acc data and finds the peaks (representing heel strikes)
+    % OLD: using peak of magnitude of acceleration (amagf: filtered, not detrended, not scaled):
+    % CURRENT: using peak of Anterior-Posterior acceleration (z direction)
+    
+[hsr_value, hsr_time]=findpeaks(acc_r,time,'MinPeakHeight',param.MinPeakHeight,'MinPeakDistance',param.MinPeakDistance, 'MinPeakProminence', param.MinPeakProminence,'Threshold',param.Threshold); 
+[hsl_value, hsl_time]=findpeaks(acc_l,time,'MinPeakHeight',param.MinPeakHeight,'MinPeakDistance',param.MinPeakDistance, 'MinPeakProminence', param.MinPeakProminence,'Threshold',param.Threshold); 
+hsr.time = hsr_time; % time of strike, right ankle
+hsr.value = hsr_value; % accleration at heel strike, right ankle  
+hsl.time = hsl_time; % time of strike, left ankle
+hsl.value = hsl_value; % accleration at heel strike, left ankle  
 
-% Uses the magnitudes from filtered acc data and finds the peaks
-% (representing toe off)
-% PENDING. I dont think I can easily do this. Will need a fancier
-% algorithm.
-
-%% Plots the peaks as x's and o's
-figure(1)
-plot(ax(1).time,azdf_scaled(:,1:2),'-');
-hold on;
-plot(ax(1).time(hsr_index),hsr_value, 'o');
-plot(ax(1).time(hsl_index),hsl_value,'x');
-hold off;
-legend('R Ankle', 'L Ankle')
-ylim([0 2]);
-title('Peaks of Acceleration Magnitudes, filtered')
-
-
+% PENDING: Uses the magnitudes from filtered acc data and finds the peaks (representing toe off). I dont think I can easily do this. Will need a fancier algorithm.
 end
 function [EMG_envelope, EMG_label] = filterEMG(emg)
 % Filter the EMG data
@@ -616,7 +844,7 @@ end
 
 
 end
-function [gaitCycle,nStrides_right,nStrides_left] = findStridesEMG(time,EMG,hsr_time,hsl_time)
+function [EMG_strides,nStrides_right,nStrides_left] = findStridesEMG(time,EMG,hsr_time,hsl_time)
 % divides the EMG signals insto strides
 % time: vector of time
 % EMG: vector of EMG data
@@ -624,25 +852,25 @@ function [gaitCycle,nStrides_right,nStrides_left] = findStridesEMG(time,EMG,hsr_
 npts = 101; % points per gait cycle
 nStrides_right = length(hsr_time)-1; % number of complete gait cycles
 nStrides_left  = length(hsl_time)-1; 
-gaitCycle = cell(1,12);
+EMG_strides = cell(1,12);
 
 for m = 1:6 %sort through each muscle
    % RIGHT LEG
    emg1 = EMG(:,m);
-   gaitCycle{m} = zeros(npts,nStrides_right); % preallocated
+   EMG_strides{m} = zeros(npts,nStrides_right); % preallocated
    for j = 1:nStrides_right
        j1 = find(time>hsr_time(j),1); % get index of time at first heel strike
        j2 = find(time>hsr_time(j+1),1); % get index of time at second heel strike
-       gaitCycle{m}(:,j) = normcycle(emg1(j1:j2),npts); % time normalize
+       EMG_strides{m}(:,j) = normcycle(emg1(j1:j2),npts); % time normalize
    end
    
    % LEFT LEG
    emg1 = EMG(:,6+m);
-   gaitCycle{6+m} = zeros(npts,nStrides_left); 
+   EMG_strides{6+m} = zeros(npts,nStrides_left); 
    for j = 1:nStrides_left
        j1 = find(time>hsl_time(j),1); % get index of time at first heel strike
        j2 = find(time>hsl_time(j+1),1); % get index of time at second heel strike
-       gaitCycle{6+m}(:,j) = normcycle(emg1(j1:j2),npts); % time normalize
+       EMG_strides{6+m}(:,j) = normcycle(emg1(j1:j2),npts); % time normalize
    end
 end
 
@@ -680,4 +908,36 @@ end
 kk=[0:(n-1)]/(n-1);
 yf=interp1(x,y,kk,'*pchip');
 
+end
+function plotEMG(fig,tr,inpath)
+% plot EMG data for average gait cycle and all strides overlaid
+
+for j = 1:6
+    subplot(6,2,2*j)
+    shadedErrorBar([0:100]',tr.emgData(:,j),tr.emgStd(:,j));%,{'color',tbiStudy.plot.emgPlotColors{1}},tbiStudy.plot.transparentErrorBars);
+    hold on
+    for i = 1:tr.nStrides_right
+        plot([0:100]',tr.emgStrides{j}(:,i))
+    end
+    hold off
+    title(tr.emgLabel{j})
+    
+    subplot(6,2,2*j-1)
+    shadedErrorBar([0:100]',tr.emgData(:,6+j),tr.emgStd(:,6+j));%,{'color',tbiStudy.plot.emgPlotColors{1}},tbiStudy.plot.transparentErrorBars);
+    hold on
+    for i = 1:tr.nStrides_left
+        plot([0:100]',tr.emgStrides{6+j}(:,i))
+    end
+    hold off
+    title(tr.emgLabel{6+j})
+end
+figure(fig); tightfig(fig);
+suptitle([tr.subject_type '-' sprintf('%02d',tr(1).subject_id) ' TP' sprintf('%02d',tr(1).testPoint) ' ' tr(1).trialType]);
+fig.PaperUnits = 'centimeters'; fig.PaperPosition = [0 0 25 30]; 
+filename = [tr.subject_type sprintf('%02d',tr(1).subject_id) '_tp' sprintf('%02d',tr(1).testPoint) '_' tr(1).trialType '_avg'];
+path_orig = pwd;
+cd(inpath);
+print(filename,'-dpng','-painters','-loose');
+cd(path_orig);
+disp(['Plot of EMG over gait cycles saved as: ' filename '.png']);
 end
