@@ -1,6 +1,6 @@
 
 
-ID = '26'
+ID = '01'
 TP = '01'
 % TP = '02' 
 % TP = '06' 
@@ -8,7 +8,9 @@ TP = '01'
 
 inpath = [tbiStudy.constants.dataFolder 'TBI_' ID '/TP' TP '/']
 
-% BASELINE
+
+%% BASELINE
+
 infile = ['tbi' ID '_tp' TP '_baseline.txt']
 [tr,inpath] = tbiStudy.processEMGtrial(inpath,infile);
 tbiStudy.addTrialToDatabase(tr,inpath);

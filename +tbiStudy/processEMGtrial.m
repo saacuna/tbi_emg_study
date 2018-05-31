@@ -72,7 +72,7 @@ acc= struct(...
     'testPoint',[],...
     'trialType',[],...
     'filename',[]);
-
+ 
 c = strsplit(infile,'_'); % parse out info from file name
 
 try % subject ID
@@ -143,6 +143,9 @@ clear ax ay az time_acc
 
 % use algorithm to detect heel strike. MUST MANUALLY VALIDATE IT IS OKAY.
 [hsr, hsl, param] = findHeelStrikes(acc,tr,inpath);
+% if I accidentally put accelerometers on the wrong legs, switch it here.
+% hsr_temp = hsr; hsr = hsl; hsl = hsr_temp; clear hsr_temp;
+%
 acc(1).hsr.time = hsr.time;
 acc(1).hsl.time = hsl.time;
 acc(1).hsr.value = hsr.value;
@@ -203,17 +206,30 @@ end
 tr(1).emgConcat = EMG_concat;
 clear EMG_concat1 EMG_concat strides;
 
+% also find emgConcat scaled to unit variance (this undos the scaling to
+% peak amplitude)
+for i = 1:12
+    emgConcat_scaledUnitVariance{i} = tr(1).emgConcat{i}/std(tr(1).emgConcat{i});
+end
+tr(1).emgConcat_scaledUnitVariance = emgConcat_scaledUnitVariance;
+
 % find average gait cycle pattern across all steps
 disp('calculating emg data over average gait cycle....');
 EMG_avg = zeros(size(tr.emgStrides{1},1),12);
 EMG_std = zeros(size(tr.emgStrides{1},1),12);
+EMG_avg_scaledUnitVariance = zeros(size(tr.emgStrides{1},1),12);
+EMG_std_scaledUnitVariance = zeros(size(tr.emgStrides{1},1),12);
 for i = 1:12
-    EMG_avg(:,i) = mean(tr.emgStrides{i}')';
+    EMG_avg(:,i) = mean(tr.emgStrides{i}')'; %scaled to peak EMG
     EMG_std(:,i) = std(tr.emgStrides{i}')';
+    EMG_avg_scaledUnitVariance(:,i) = EMG_avg(:,i)/std(tr(1).emgConcat{i}); %scaled to EMG unit variance
+    EMG_std_scaledUnitVariance(:,i) = EMG_std(:,i)/std(tr(1).emgConcat{i});
 end
 tr(1).emgData = EMG_avg; % save average gait cycle
 tr(1).emgStd = EMG_std;
-clear EMG_avg EMG_std;
+tr(1).emgData_scaledUnitVariance = EMG_avg_scaledUnitVariance;
+tr(1).emgStd_scaledUnitVariance = EMG_std_scaledUnitVariance;
+clear EMG_avg EMG_std EMG_avg_scaledUnitVariance EMG_std_scaledUnitVariance emgConcat_scaledUnitVariance;
 
 % plot average gait cycle and steps overlaid, and save to file
 fig = figure(2);
@@ -956,4 +972,26 @@ cd(inpath);
 print(filename,'-dpng','-painters','-loose');
 cd(path_orig);
 disp(['Plot of EMG over gait cycles saved as: ' filename '.png']);
+
+% emg scaled to unit variance
+fig2 = figure();
+for j = 1:6
+    subplot(6,2,2*j)
+    shadedErrorBar([0:100]',tr.emgData_scaledUnitVariance(:,j),tr.emgStd_scaledUnitVariance(:,j));
+    title(tr.emgLabel{j}); ylim([0 5]);
+    
+    subplot(6,2,2*j-1)
+    shadedErrorBar([0:100]',tr.emgData_scaledUnitVariance(:,6+j),tr.emgStd_scaledUnitVariance(:,6+j));
+    title(tr.emgLabel{6+j}); ylim([0 5]);
+end
+    %tightfig(fig2);
+    suptitle([tr.subject_type '-' sprintf('%02d',tr(1).subject_id) ' TP' sprintf('%02d',tr(1).testPoint) ' ' tr(1).trialType '  UNIT VARIANCE SCALING']);
+    fig.PaperUnits = 'centimeters'; fig.PaperPosition = [0 0 25 30];
+    filename = [tr.subject_type sprintf('%02d',tr(1).subject_id) '_tp' sprintf('%02d',tr(1).testPoint) '_' tr(1).trialType '_avg_unitVariance'];
+    path_orig = pwd;
+    cd(inpath);
+    print(filename,'-dpng','-painters','-loose');
+    cd(path_orig);
+    disp(['Plot of EMG over gait cycles with unit variance saved as: ' filename '.png']);
+close(fig2);
 end
