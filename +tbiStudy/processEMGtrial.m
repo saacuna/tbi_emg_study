@@ -167,6 +167,13 @@ tr(1).emgTime = emg(1).time;
 [EMG_envelope, EMG_label] = filterEMG(emg); %BP filter 10-500 Hz, rectify, LP filter 10 Hz
 [EMG_sorted, EMG_label_sorted] = sortEMGsignals(EMG_envelope, EMG_label); % rearrange channels to match R & L legs
 
+weirdSignals = 01;
+if weirdSignals % identify weird parts of the signal, and correct them.
+  [EMGsignals_corrected] = correctEMGspikes(EMG_sorted,EMG_label_sorted,acc,tr.emgTime);
+  EMG_sorted = EMGsignals_corrected;
+end
+
+
 % EMG_normalized = EMG_sorted./rms(EMG_sorted); % old: normalize to RMS of linear envelopes
 EMG_normalized = EMG_sorted./max(EMG_sorted); % current: normalize to Peak of linear envelopes
 % note: in my original analysis, I amplitude normalized the average gait
@@ -424,9 +431,9 @@ function [acc_output, time_acc] = filterACC(ax, ay, az)
 % az axis: posterior
 
 disp('Checking order of accelerometers: (R ankle, L ankle, Lumbar)');
-assert(strcmp(ax(1).label,'R ANKLE (ACC)'));
-assert(strcmp(ax(2).label,'L ANKLE (ACC)'));
-assert(strcmp(ax(3).label,'LUMBAR (ACC)'));
+assert((strcmp(ax(1).label,'R ANKLE (ACC)') || strcmp(ax(1).label,'Right Ankle') || strcmp(ax(1).label,'Trigno sensor 14')));
+assert((strcmp(ax(2).label,'L ANKLE (ACC)') || strcmp(ax(2).label,'Left Ankle')  || strcmp(ax(2).label,'Trigno sensor 15')));
+assert((strcmp(ax(3).label,'LUMBAR (ACC)')  || strcmp(ax(3).label,'Lumbar')      || strcmp(ax(3).label,'Trigno sensor 16')));
 
 disp('filtering Acceleration.')
 [bfa,afa]=butter(3,25/(ax(1).freq/2)); %Used to remove high-frequency noise above 25Hz. 3rd order butterworth
@@ -546,6 +553,7 @@ color_r = [0.8500    0.3250    0.0980]; %red
 color_l = [     0    0.4470    0.7410]; %blue
 symbol_r = 'kx';
 symbol_l = 'ko';
+msize = 12;
 ylimits = [-1 2];
 xlimits1 = [0 20.5]; xlimits2 = [20 40.5]; xlimits3 = [40 60.5];
 
@@ -563,22 +571,22 @@ fig1 = figure(1);
 subplot(3,1,1);
 h1t1_r = plot(acc.time(t1_start:t1_end),acc_r(t1_start:t1_end),'color',color_r); hold on;
 h1t1_l = plot(acc.time(t1_start:t1_end),acc_l(t1_start:t1_end),'color',color_l);
-h2t1_hsr = plot(hsr.time(t1_start_hsr:t1_end_hsr),hsr.value(t1_start_hsr:t1_end_hsr),symbol_r);
-h2t1_hsl = plot(hsl.time(t1_start_hsl:t1_end_hsl),hsl.value(t1_start_hsl:t1_end_hsl),symbol_l); hold off;
+h2t1_hsr = plot(hsr.time(t1_start_hsr:t1_end_hsr),hsr.value(t1_start_hsr:t1_end_hsr),symbol_r,'MarkerSize',msize);
+h2t1_hsl = plot(hsl.time(t1_start_hsl:t1_end_hsl),hsl.value(t1_start_hsl:t1_end_hsl),symbol_l,'MarkerSize',msize); hold off;
 xlim(xlimits1); ylim(ylimits); title('FIND HEEL STRIKES: 0 - 20 sec');
 legend([h1t1_r, h1t1_l, h2t1_hsr, h2t1_hsl],{'R Ankle Acc', 'L Ankle Acc', 'R Heel Strike', 'L Heel Strike'},'location','southeast','orientation','horizontal');
 
 subplot(3,1,2);
 h1t2_r = plot(acc.time(t2_start:t2_end),acc_r(t2_start:t2_end),'color',color_r); hold on;
 h1t2_l = plot(acc.time(t2_start:t2_end),acc_l(t2_start:t2_end),'color',color_l);
-h2t2_hsr = plot(hsr.time(t2_start_hsr:t2_end_hsr),hsr.value(t2_start_hsr:t2_end_hsr),symbol_r);
-h2t2_hsl = plot(hsl.time(t2_start_hsl:t2_end_hsl),hsl.value(t2_start_hsl:t2_end_hsl),symbol_l); hold off;
+h2t2_hsr = plot(hsr.time(t2_start_hsr:t2_end_hsr),hsr.value(t2_start_hsr:t2_end_hsr),symbol_r,'MarkerSize',msize);
+h2t2_hsl = plot(hsl.time(t2_start_hsl:t2_end_hsl),hsl.value(t2_start_hsl:t2_end_hsl),symbol_l,'MarkerSize',msize); hold off;
 xlim(xlimits2); ylim(ylimits); title('FIND HEEL STRIKES: 20 - 40 sec');
 subplot(3,1,3);
 h1t3_r = plot(acc.time(t3_start:t3_end),acc_r(t3_start:t3_end),'color',color_r); hold on;
 h1t3_l = plot(acc.time(t3_start:t3_end),acc_l(t3_start:t3_end),'color',color_l);
-h2t3_hsr = plot(hsr.time(t3_start_hsr:t3_end_hsr),hsr.value(t3_start_hsr:t3_end_hsr),symbol_r);
-h2t3_hsl = plot(hsl.time(t3_start_hsl:t3_end_hsl),hsl.value(t3_start_hsl:t3_end_hsl),symbol_l); hold off;
+h2t3_hsr = plot(hsr.time(t3_start_hsr:t3_end_hsr),hsr.value(t3_start_hsr:t3_end_hsr),symbol_r,'MarkerSize',msize);
+h2t3_hsl = plot(hsl.time(t3_start_hsl:t3_end_hsl),hsl.value(t3_start_hsl:t3_end_hsl),symbol_l,'MarkerSize',msize); hold off;
 xlim(xlimits3); ylim(ylimits); title('FIND HEEL STRIKES: 40 - 60 sec');
 
 set(fig1, 'Position', get(0, 'Screensize'));
@@ -745,16 +753,16 @@ while loop
     t3_start_hsl = find(hsl.time >= xlimits3(1),1); t3_end_hsl = length(hsl.time);
     figure(fig1);
     subplot(3,1,1); delete(h2t1_hsr); delete(h2t1_hsl); hold on; 
-    h2t1_hsr = plot(hsr.time(t1_start_hsr:t1_end_hsr),hsr.value(t1_start_hsr:t1_end_hsr),symbol_r);
-    h2t1_hsl = plot(hsl.time(t1_start_hsl:t1_end_hsl),hsl.value(t1_start_hsl:t1_end_hsl),symbol_l); hold off;
+    h2t1_hsr = plot(hsr.time(t1_start_hsr:t1_end_hsr),hsr.value(t1_start_hsr:t1_end_hsr),symbol_r,'MarkerSize',msize);
+    h2t1_hsl = plot(hsl.time(t1_start_hsl:t1_end_hsl),hsl.value(t1_start_hsl:t1_end_hsl),symbol_l,'MarkerSize',msize); hold off;
     xlim(xlimits1); ylim(ylimits); legend([h1t1_r, h1t1_l, h2t1_hsr, h2t1_hsl],{'R Ankle Acc', 'L Ankle Acc', 'R Heel Strike', 'L Heel Strike'},'location','southeast','orientation','horizontal');
     subplot(3,1,2); delete(h2t2_hsr); delete(h2t2_hsl); hold on; 
-    h2t2_hsr = plot(hsr.time(t2_start_hsr:t2_end_hsr),hsr.value(t2_start_hsr:t2_end_hsr),symbol_r);
-    h2t2_hsl = plot(hsl.time(t2_start_hsl:t2_end_hsl),hsl.value(t2_start_hsl:t2_end_hsl),symbol_l); hold off;
+    h2t2_hsr = plot(hsr.time(t2_start_hsr:t2_end_hsr),hsr.value(t2_start_hsr:t2_end_hsr),symbol_r,'MarkerSize',msize);
+    h2t2_hsl = plot(hsl.time(t2_start_hsl:t2_end_hsl),hsl.value(t2_start_hsl:t2_end_hsl),symbol_l,'MarkerSize',msize); hold off;
     xlim(xlimits2); ylim(ylimits);
     subplot(3,1,3); delete(h2t3_hsr); delete(h2t3_hsl); hold on; 
-    h2t3_hsr = plot(hsr.time(t3_start_hsr:t3_end_hsr),hsr.value(t3_start_hsr:t3_end_hsr),symbol_r);
-    h2t3_hsl = plot(hsl.time(t3_start_hsl:t3_end_hsl),hsl.value(t3_start_hsl:t3_end_hsl),symbol_l); hold off;
+    h2t3_hsr = plot(hsr.time(t3_start_hsr:t3_end_hsr),hsr.value(t3_start_hsr:t3_end_hsr),symbol_r,'MarkerSize',msize);
+    h2t3_hsl = plot(hsl.time(t3_start_hsl:t3_end_hsl),hsl.value(t3_start_hsl:t3_end_hsl),symbol_l,'MarkerSize',msize); hold off;
     xlim(xlimits3); ylim(ylimits);
 end %while
 
@@ -789,6 +797,113 @@ hsl.time = hsl_time; % time of strike, left ankle
 hsl.value = hsl_value; % accleration at heel strike, left ankle  
 
 % PENDING: Uses the magnitudes from filtered acc data and finds the peaks (representing toe off). I dont think I can easily do this. Will need a fancier algorithm.
+end
+function [EMGsignals_corrected] = correctEMGspikes(EMGsignals,EMG_label_sorted,acc,emgTime)
+  
+EMGsignals_original = EMGsignals;
+loop = 1;
+while loop
+    % plot
+    fig3 = figure(3); % R leg
+    fig4 = figure(4); % L leg
+    for i = 1:6
+        figure(fig3);
+        subplot(6,1,i);
+        plot(emgTime,EMGsignals(:,i));
+        title(EMG_label_sorted{i});
+        hold on;
+        scale = max(EMGsignals(:,i));
+        hs_x = [acc(1).hsr.time, acc(1).hsr.time]';
+        hs_y = [zeros(length(acc(1).hsr.time),1), zeros(length(acc(1).hsr.time),1)+(scale/2)]';
+        plot(hs_x,hs_y,'r');
+        hold off;
+        xlim([0 60]);
+        
+        figure(fig4);
+        subplot(6,1,i);
+        plot(emgTime,EMGsignals(:,i+6));
+        title(EMG_label_sorted{i+6});
+        hold on;
+        scale = max(EMGsignals(:,i+6));
+        hs_x = [acc(1).hsl.time, acc(1).hsl.time]';
+        hs_y = [zeros(length(acc(1).hsl.time),1), zeros(length(acc(1).hsl.time),1)+(scale/2)]';
+        plot(hs_x,hs_y,'r');
+        hold off;
+        xlim([0 60]);
+    end
+    
+    disp('Manually find and remove EMG peaks, using ginput function.');
+    disp('Specify which signals to correct. "MGR" means "Right leg, medial gastroc"');
+    disp('or type, G: everything looks good now, A: abort this strategy')
+    legChoice = input('Input:  ','s');
+    process = 1;
+    switch legChoice
+        case {'G', 'g'} % everything looks good now
+            disp('user confirms that EMG signals look okay'); disp(' ');
+            disp('Be sure to add a note saying that you corrected the EMG signal'); disp(' ');
+            EMGsignals_corrected = EMGsignals;
+            break;
+        case {'A','a'} % abort
+            disp('Aborting this strategy.'); disp(' ');
+            EMGsignals_corrected = EMGsignals_original;
+            break;
+        case {'tar','TAR','rta','RTA'} % tibialis anterior
+            i = 1;
+        case {'tal','TAL','lta','LTA'}
+            i = 7;
+        case {'mgr','MGR','rmg','RMG'}% medial gastrocnemius
+            i = 2;
+        case {'mgl','MGL','lmg','LMG'}
+            i = 8;
+        case {'slr','SLR','rsl','RSL'} % soleus
+            i = 3;
+        case {'sll','SLL','lsl','LSL'}
+            i = 9;
+        case {'vlr','VLR','rvl','RVL'} % vastus lateralis
+            i = 4;
+        case {'vll','VLL','lvl','LVL'}
+            i = 10;
+        case {'rfr','RFR','rrf','RRF'} % rectus femoris
+            i = 5;
+        case {'rfl','RFL','lrf','LRF'}
+            i = 11;
+        case {'mhr','MHR','rmh','RMH'} % medial hamstrings (semitendinosus)
+            i = 6;
+        case {'mhl','MHL','lmh','LMH'}
+            i = 12;
+        otherwise
+            disp('Unknown input. Format is like this: XYY or YYX');
+            disp('Where X is either R or L for right leg or left leg');
+            disp('and XX is the muscle code: TA, MG, SL, VL, RF, MH');
+            disp(' ');
+            process = 0;
+    end
+    
+    if process
+        disp('Choose the x values to Left and Right of area to scale');
+        [X,~] = ginput(2);
+        
+        timeStart = find(emgTime>X(1),1);
+        timeEnd = find(emgTime<X(2),1,'last');
+        
+        disp('Choose the desired peak height')
+        [~,desiredPeak] = ginput(1);
+        disp('Choose the desired minimum')
+        [~,desiredMin] = ginput(1);
+        
+        if length(X) < 2 || length(desiredPeak) < 1 || length(desiredMin) < 1
+            disp('Not enough points selected. Redo.');
+        else
+            % adjust the EMG signal
+            temp = EMGsignals(:,i);
+            peak = max(temp(timeStart:timeEnd));
+            regionScale = (desiredPeak-desiredMin)/peak;
+            temp(timeStart:timeEnd) = temp(timeStart:timeEnd)*regionScale+desiredMin;
+            EMGsignals(:,i) = temp;
+        end
+    end
+end
+close all;
 end
 function [EMG_envelope, EMG_label] = filterEMG(emg)
 % Filter the EMG data
@@ -865,7 +980,7 @@ for i = 1:12 % cycle through signals recorded
         case 'L VASTUS LATERALIS' % column 10
             EMG_sorted(:,10) = EMG_envelope(:,i);
             EMG_label_sorted{10} = EMG_label{i};
-        case 'L RECTUS FEMORIS' % column 11
+        case {'L RECTUS FEMORIS', 'L RECTUS FEMORIS (1)'} % column 11
             EMG_sorted(:,11) = EMG_envelope(:,i);
             EMG_label_sorted{11} = EMG_label{i};
         case 'L SEMITENDINOSUS' % column 12
