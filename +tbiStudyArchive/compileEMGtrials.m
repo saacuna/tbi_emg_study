@@ -4,6 +4,8 @@
 % Description:
 % This takes separate healthy EMG trial files and compiles them into an average healthy EMG trial
 %
+% THIS CODE MAY BE OUT OF DATE AND NOT COMPATIBLE WITH CURRENT CODE AND
+% DATA FORMATTING
 %
 clc; clear; close all;
 

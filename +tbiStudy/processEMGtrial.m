@@ -249,8 +249,8 @@ disp(['EMG data saved as: ' tr.filename]);
 disp(['in folder: ' inpath]);
 
 %% append trial to database (temporary)
-tbiStudy.appendTrialInDatabase(tr);
-tbiStudy.appendTrialInDatabase(acc);
+%tbiStudy.appendTrialInDatabase(tr);
+%tbiStudy.appendTrialInDatabase(acc);
 end
 
 

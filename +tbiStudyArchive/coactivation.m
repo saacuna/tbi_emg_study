@@ -6,6 +6,9 @@ classdef coactivation
     % This class holds static coactivation analysis functions
     % The trials must already in the workspace.
     %
+    % THIS FUNCTION IS OUT OF DATE AND NEEDS TO BE UPDATED TO WORK WITH
+    % CURRENT CODE AND DATA FORMATS.
+    %
     % Example Usage:
     %       tbiStudy.coactivation.winter(tr, interval) %returns winter's coactivation index
     %

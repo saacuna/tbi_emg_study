@@ -5,11 +5,7 @@ function querydata = load(sqlquery) % constructor function
 % Description:
 % Used to load data from SQLite database for analysis in Matlab
 %
-%
-% Example Usage:
-%       tbiStudy.load.trials(sqlquery)
-%
-% Example usage 2:
+% Example usage:
 %         sqlquery = ['select * from trials_healthy where trialType = "overground" order by subject_id'];
 %         queryData = tbiStudy.load(sqlquery);
 % 
@@ -24,7 +20,12 @@ function querydata = load(sqlquery) % constructor function
 %         end
 %         tr = tr_temp;
 %
-%
+% some example queries:
+% sqlquery = 'select * from tbi_subjects';
+% sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 6 and trials.trialType = "overground" and tbi_subjects.stimulation_level = "Control"';
+% sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 10 and trials.trialType = "baseline"';
+% sqlquery = 'select subject_id from tbi_subjects where stimulation_level = "Active"';
+% sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 1 and trials.trialType = "overground"';
 %
 
 
@@ -55,3 +56,5 @@ end
 % Close database connection.
 close(conn);
 end
+
+

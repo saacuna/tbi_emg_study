@@ -5,6 +5,9 @@ classdef plot
     % Description:
     % This class holds static functions that plot trials
     % 
+    % I've used this code heavily in the past, but it is sooo bloated right
+    % now. If I need to use these sub-functions, I will pull them out and start
+    % fresh, but as of right now, this class is archived. - SAA 06 Sep 2018
     %
     % Example Usage:
     %       tbiStudy.plot.single(tr(1))           % plots one trial from workspace

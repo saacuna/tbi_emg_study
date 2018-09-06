@@ -6,8 +6,13 @@ classdef correlation
     % This class holds static correlation analysis functions
     % The trials must already in the workspace.
     %
-    % Example Usage:
-    %       tbiStudy.correlation.ofTestPoint(1,1) %returns correlation matrices of subj 1 testPoint 1
+    %  using older versions of this code, The correlation functions were used heavily in the first paper:
+    %?[1] S.A. Acuña, M.E. Tyler, Y.P. Danilov, D.G. Thelen, Abnormal muscle activation patterns are associated with chronic gait deficits following traumatic brain injury, Gait Posture. 62 (2018) 510?517. doi:https://doi.org/10.1016/j.gaitpost.2018.04.012.
+    %
+    % However, this code is very bloated and i dont really write my code this
+    % way anymore. - SAA 06 Sep 2018
+    %
+ 
     
     methods (Static)
         function cor = testPoint(subject_id,testPoint) % correlation coefficient between all trials in a testpoint
