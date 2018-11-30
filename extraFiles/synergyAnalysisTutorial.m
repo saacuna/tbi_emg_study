@@ -8,7 +8,7 @@ clear; close all; clc;
 
 %% STEP 1: Generated Signals from synergies
 m = 6; % number of signals (e.g. EMG data from m muscles)
-n = 1;  % true number of synergies used in the generated data
+n = 3;  % true number of synergies used in the generated data
             
 % 1.1 Create *true* synergies (W) and relative activations (C)
 

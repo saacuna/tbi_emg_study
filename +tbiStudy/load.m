@@ -21,6 +21,7 @@ function querydata = load(sqlquery) % constructor function
 %         tr = tr_temp;
 %
 % some example queries:
+% sqlquery = ['select * from trials where trialType = "baseline" and testPoint = 1 order by subject_id'];
 % sqlquery = 'select * from tbi_subjects';
 % sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 6 and trials.trialType = "overground" and tbi_subjects.stimulation_level = "Control"';
 % sqlquery = 'select tbi_subjects.subject_id from tbi_subjects left outer join trials on trials.subject_id = tbi_subjects.subject_id where trials.testPoint = 10 and trials.trialType = "baseline"';

@@ -8,13 +8,14 @@
 %
 clear; close all; clc;
 
-% trialType = {'overground','treadmill22','treadmill28','treadmill34'}; % find synergies for healthy subjects
-trialType = {'baseline', 'overground','preferred'}; % find synergies for TBI subjects
+ trialType = {'overground','treadmill22','treadmill28','treadmill34'}; % find synergies for healthy subjects
+%trialType = {'baseline', 'overground','preferred'}; % find synergies for TBI subjects
 
 % STEP 1: load subjects data
 for tt = 1%:length(trialType)
-    %sqlquery = ['select * from trials_healthy where trialType = "' trialType{tt} '" order by subject_id'];
-    sqlquery = ['select * from trials where trialType = "' trialType{tt} '" order by subject_id,  testPoint'];
+    sqlquery = ['select * from trials_healthy where trialType = "' trialType{tt} '" order by subject_id'];
+    %sqlquery = ['select * from trials where trialType = "' trialType{tt} '" order by subject_id,  testPoint'];
+    %sqlquery = ['select * from trials where trialType = "overground" and subject_id = 13 and testPoint = 6'];
     %sqlquery = ['select * from trials where trialType = "' trialType{tt} '" and filename_SYN is null order by subject_id,  testPoint'];
     disp(['query: ' sqlquery]);
     querydata = tbiStudy.load(sqlquery);
@@ -45,7 +46,7 @@ for tt = 1%:length(trialType)
     % 4. SYNERGIES FROM CONCATENATED STRIDES, SCALED TO UNIT VARIANCE
     leg = {'right','left','both'};
     region = {[1:6],[7:12],[1:12]};
-    synergy_region = {[1:3],[1:3],[1:3]}; % {[1:6],[1:6],[1:12]}; % doing all 12 was taking way too long. Just do 6 for now.
+    synergy_region = {[1:5],[1:5],[1:3]}; % {[1:6],[1:6],[1:12]}; % doing all 12 was taking way too long. Just do 6 for now.
     
     for i = 1:length(tr)
         clear syn
@@ -66,35 +67,35 @@ for tt = 1%:length(trialType)
         % if already processed part of the data, reload the data:
         if exist(fullfile([dataFileLocation{i} syn.filename '.mat']),'file')
             load(fullfile([dataFileLocation{i} syn.filename '.mat']));
-            disp('You have already processed some of this data. Are you sure you want to proceeed? You dont want to repeat things.');
-            disp('1: yes 2:skip this trial');
-            answer = input('Input: ','s');
-            if answer ~= 1
-                disp('Aborting, and continuing to next trial to analyze.');
-                continue;
-            end
+%             disp('You have already processed some of this data. Are you sure you want to proceeed? You dont want to repeat things.');
+%             disp('1: yes 2:skip this trial');
+%             answer = input('Input: ','s');
+%             if str2num(answer) ~= 1
+%                 disp('Aborting, and continuing to next trial to analyze.');
+%                 continue;
+%             end
         end
         
         % synergy constructions: create A matrix [m x t]
-        syn1.(emg_type{1}).(leg{1}).A = tr(i).(emg_dataType{1})(:,region{1})'; % SYNERGIES FROM AVERAGE STRIDE, SCALED TO PEAK
-        syn1.(emg_type{1}).(leg{2}).A = tr(i).(emg_dataType{1})(:,region{2})';
-        syn1.(emg_type{1}).(leg{3}).A = tr(i).(emg_dataType{1})(:,region{3})';
-        syn1.(emg_type{2}).(leg{1}).A = tr(i).(emg_dataType{2})(:,region{1})'; % SYNERGIES FROM AVERAGE STRIDE, SCALED TO UNIT VARIANCE
-        syn1.(emg_type{2}).(leg{2}).A = tr(i).(emg_dataType{2})(:,region{2})';
-        syn1.(emg_type{2}).(leg{3}).A = tr(i).(emg_dataType{2})(:,region{3})';
+        %syn1.(emg_type{1}).(leg{1}).A = tr(i).(emg_dataType{1})(:,region{1})'; % SYNERGIES FROM AVERAGE STRIDE, SCALED TO PEAK
+        %syn1.(emg_type{1}).(leg{2}).A = tr(i).(emg_dataType{1})(:,region{2})';
+        %syn1.(emg_type{1}).(leg{3}).A = tr(i).(emg_dataType{1})(:,region{3})';
+        %syn1.(emg_type{2}).(leg{1}).A = tr(i).(emg_dataType{2})(:,region{1})'; % SYNERGIES FROM AVERAGE STRIDE, SCALED TO UNIT VARIANCE
+        %syn1.(emg_type{2}).(leg{2}).A = tr(i).(emg_dataType{2})(:,region{2})';
+        %syn1.(emg_type{2}).(leg{3}).A = tr(i).(emg_dataType{2})(:,region{3})';
         syn1.(emg_type{3}).(leg{1}).A = [tr(i).(emg_dataType{3}){region{1}}]'; % SYNERGIES FROM CONCATENATED STRIDES, SCALED TO PEAK
         syn1.(emg_type{3}).(leg{2}).A = [tr(i).(emg_dataType{3}){region{2}}]';
-        syn1.(emg_type{4}).(leg{1}).A = [tr(i).(emg_dataType{4}){region{1}}]'; % SYNERGIES FROM CONCATENATED STRIDES, SCALED TO UNIT VARIANCE
-        syn1.(emg_type{4}).(leg{2}).A = [tr(i).(emg_dataType{4}){region{2}}]';
+        %syn1.(emg_type{4}).(leg{1}).A = [tr(i).(emg_dataType{4}){region{1}}]'; % SYNERGIES FROM CONCATENATED STRIDES, SCALED TO UNIT VARIANCE
+        %syn1.(emg_type{4}).(leg{2}).A = [tr(i).(emg_dataType{4}){region{2}}]';
         if tr(i).nStrides_left == tr(i).nStrides_right % ensure each leg has same number of strides
             syn1.(emg_type{3}).(leg{3}).A = [tr(i).(emg_dataType{3}){region{3}}]'; % SYNERGIES FROM CONCATENATED STRIDES, SCALED TO PEAK
-            syn1.(emg_type{4}).(leg{3}).A = [tr(i).(emg_dataType{4}){region{3}}]'; % SYNERGIES FROM CONCATENATED STRIDES, SCALED TO UNIT VARIANCE
+            %syn1.(emg_type{4}).(leg{3}).A = [tr(i).(emg_dataType{4}){region{3}}]'; % SYNERGIES FROM CONCATENATED STRIDES, SCALED TO UNIT VARIANCE
         elseif tr(i).nStrides_left > tr(i).nStrides_right % remove stride from left leg
             if (tr(i).nStrides_left - tr(i).nStrides_right == 1) % remove one stride
             temp = [tr(i).(emg_dataType{3}){region{2}}]; % L
             syn1.(emg_type{3}).(leg{3}).A = [tr(i).(emg_dataType{3}){region{1}} temp(1:end-100,:)]';
-            temp = [tr(i).(emg_dataType{4}){region{2}}];
-            syn1.(emg_type{4}).(leg{3}).A = [tr(i).(emg_dataType{4}){region{1}} temp(1:end-100,:)]';
+            %temp = [tr(i).(emg_dataType{4}){region{2}}];
+            %syn1.(emg_type{4}).(leg{3}).A = [tr(i).(emg_dataType{4}){region{1}} temp(1:end-100,:)]';
             clear temp
             else % remove multiple strides.  Pause here in debugger and manually set the correct regions.
                 disp('The accelerometers cut out and there is not an even number of strides.  Pause here in debugger and manually set the correct regions. For now, we skip it.');
@@ -104,13 +105,12 @@ for tt = 1%:length(trialType)
             if (tr(i).nStrides_right - tr(i).nStrides_left == 1) % remove one stride
             temp = [tr(i).(emg_dataType{3}){region{1}}];
             syn1.(emg_type{3}).(leg{3}).A = [temp(1:end-100,:) tr(i).(emg_dataType{3}){region{2}}]';
-            temp = [tr(i).(emg_dataType{4}){region{1}}];
-            syn1.(emg_type{4}).(leg{3}).A = [temp(1:end-100,:) tr(i).(emg_dataType{4}){region{2}}]';
+            %temp = [tr(i).(emg_dataType{4}){region{1}}];
+            %syn1.(emg_type{4}).(leg{3}).A = [temp(1:end-100,:) tr(i).(emg_dataType{4}){region{2}}]';
             clear temp
             else % remove multiple strides. Pause here in debugger and manually set the correct regions.
-                continue;
-                disp('The accelerometers cut out and there is not an even number of strides.  Pause here in debugger and manually set the correct regions. For now, we skip it.');
-                continue; % comment this out if debugging
+                disp('The accelerometers cut out and there is not an even number of strides.  Pause here in debugger and manually set the correct regions. This is only important when looking for synergies at both legs at same time. For now, we skip it.');
+                %continue; % comment this out if debugging
                 % for tbi13_tp06_overground: A = [temp(501:end,:) tr(i).(emg_dataType...
                 % for tbi15_tp02_overground: A = [temp(1101:end,:) tr(i).(emg_dataType...
                 % for tbi17_tp01_overground: A = [temp(501:end,:) tr(i).(emg_dataType...
@@ -118,8 +118,8 @@ for tt = 1%:length(trialType)
             end
         end
         
-        for j = 1:length(emg_type) % cycle through EMG data types
-            for k = 1:length(leg) % cycle through leg selection
+        for j = 3 %1:length(emg_type) % cycle through EMG data types
+            for k = 1:2%length(leg) % cycle through leg selection
                 for n = synergy_region{k} % cycle through number of synergies
                     disp(['     processing ' emg_type{j} ' for ' leg{k} ' legs using ' num2str(n) ' synergies...']);
                     clear A;
@@ -152,7 +152,7 @@ for tt = 1%:length(trialType)
         save([dataFileLocation{i} syn.filename],'syn');
         disp(['Synergy data saved as: ' syn.filename]);
         disp(['in folder: ' dataFileLocation{i}]);
-        tbiStudy.appendTrialInDatabase(syn);
+        %tbiStudy.appendTrialInDatabase(syn);
         
     end
 end
