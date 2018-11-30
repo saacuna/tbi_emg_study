@@ -5,7 +5,7 @@
 % synergy file. Make sure you are comparing the correct healthy data to the
 % TBI data (e.g. overground compares to overground)
 %
-%
+% real change
 %
 clear; close all; clc;
 ngth(emg_type) % cycle through EMG data types
