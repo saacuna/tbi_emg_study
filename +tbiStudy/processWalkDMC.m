@@ -8,42 +8,7 @@
 %
 %
 clear; close all; clc;
-
-trialType_healthy = {'overground','treadmill22','treadmill28','treadmill34'}; % for healthy subjects
-trialType = {'baseline', 'overground','preferred'}; % for TBI subjects
-nSynergiesRange = [1:3];
-
-% choose which trial types to compare
-tth = 2; % index for trialType_healthy
-tt = 1; % index for trialType
-
-
-%% STEP 1: load healthy subjects data
-sqlquery = ['select * from trials_healthy where trialType = "' trialType_healthy{tth} '" order by subject_id'];
-disp(['query: ' sqlquery]);
-querydata = tbiStudy.load(sqlquery);
-
-[rows, ~] = size(querydata);
-syn_temp = [];
-dfl_temp = cell(rows,1);
-for i = 1:rows %iteratively load queried trials into structure
-    dataFileLocation = querydata{i,4}; % load relative file location
-    dataFileLocation = [tbiStudy.constants.dataFolder dataFileLocation]; % create absolute file location
-    filename = querydata{i,9}; % load SYNERGY data
-    load([dataFileLocation filename]); % loads a variable called 'syn'
-    syn_temp = [syn_temp; syn];
-    dfl_temp{i} = dataFileLocation;
-end
-syn1 = syn_temp; % use 'syn1' to store all the 'syn' variables
-dataFileLocation = dfl_temp;
-clear filename i querydata sqlquery syn_temp dfl_temp rows syn
-
-%% STEP 2: find AVG and STD tVAF of the healthy subjects
-emg_type = {'avg_peak','avg_unitVar','concat_peak','concat_unitVar'};
-leg = {'right','left','both'};
-
-disp('Finding AVG and STD tVAF for the healthy subjects...');
-for j = 1:length(emg_type) % cycle through EMG data types
+ngth(emg_type) % cycle through EMG data types
     for k = 1:length(leg) % cycle through leg selection
         for n = nSynergiesRange % cycle through number of synergies
             tVAF = [];
