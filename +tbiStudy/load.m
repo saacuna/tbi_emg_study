@@ -2,7 +2,7 @@ function querydata = load(sqlquery) % constructor function
 % Filename: load.m
 % Author:   Samuel Acuña
 % Date:     12 Jun 2018
-% Description:
+% Description: 
 % Used to load data from SQLite database for analysis in Matlab
 %
 % Example usage:
