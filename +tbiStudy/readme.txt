@@ -10,3 +10,5 @@ this package interacts with the SQLite database: emg_tbi_database
 
 3. use an SQL query with load.m to bring trials into the workspace for analysis and comparison and plotting
 
+Thanks!
+
