@@ -3,6 +3,7 @@
 % Date:     13 Jun 2018
 % Description: find walkDMC metric from synergy data. Resave it into the
 % synergy file. Make sure you are comparing the correct healthy data to the
+<<<<<<< HEAD
 % TBI data (e.g. overground compares to overground)
 %
 % real change
@@ -27,8 +28,44 @@ disp('     done.');
 %% STEP 3: find walkDMC for the healthy subjects. Only need to process this once for each trialtype_healthy, because it saves it to file.
 % disp('Finding walkDMC for the healthy subjects...');
 % for i = 1:length(syn1) % cycle through subjects in this trialType_healthy
+||||||| merged common ancestors
+% TBI data (e.g. overground compares to overground)
+%
+%
+%
+clear; close all; clc;
+ngth(emg_type) % cycle through EMG data types
+    for k = 1:length(leg) % cycle through leg selection
+        for n = nSynergiesRange % cycle through number of synergies
+            tVAF = [];
+            for i = 1:length(syn1)
+                tVAF = [tVAF;  syn1(i).(emg_type{j}).(leg{k}).VAF{n}];
+            end
+            tVAF_healthy.(emg_type{j}).(leg{k}).avg(n) = mean(tVAF); % average healthy total variance accounted for
+            tVAF_healthy.(emg_type{j}).(leg{k}).std(n) = std(tVAF); % standard deviation healthy total variance accounted for
+        end
+    end
+end
+clear i j k n tVAF
+disp('     done.');
+
+
+%% STEP 3: find walkDMC for the healthy subjects. Only need to process this once for each trialtype_healthy, because it saves it to file.
+% disp('Finding walkDMC for the healthy subjects...');
+% for i = 1:length(syn1) % cycle through subjects in this trialType_healthy
+=======
+% TBI data (e.g. overground compares  subjects in this trialType_healthy
+>>>>>>> test
 %     for j = 1:length(emg_type) % cycle through EMG data types
-%         for k = 1:length(leg) % cycle through leg selection
+%         for k = 1:length(leg) % cycle thSD?lkfnsd
+f; s
+df, 
+;lsdmfl ksdl;
+fj ;lsdjf 
+;lsd
+;lf j
+;ksdj f;s
+rough leg selection
 %             for n = nSynergiesRange % cycle through number of synergies
 %                 tVAF_healthy_avg = tVAF_healthy.(emg_type{j}).(leg{k}).avg(n); % average healthy total variance accounted for
 %                 tVAF_healthy_std = tVAF_healthy.(emg_type{j}).(leg{k}).std(n); % standard deviation healthy total variance accounted for
