@@ -6,7 +6,6 @@
 % TBI data (e.g. overground compares to overground)
 %
 %
-%
 clear; close all; clc;
 
 trialType_healthy = {'overground','treadmill22','treadmill28','treadmill34'}; % for healthy subjects
