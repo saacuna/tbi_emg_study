@@ -30,7 +30,7 @@ clearvars -except syn
 
 %% find number of synergies for xx% VAF
 
-thresholdVAF = 0.95;%0.90;
+thresholdVAF = 0.90;%0.90;
 emg_type = 'concat_peak';
 leg = {'left','right'};
 
